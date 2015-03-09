@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from seaserv import ccnet_threaded_rpc, seafserv_threaded_rpc, get_emailusers, \
     CALC_SHARE_USAGE, seafile_api
 from pysearpc import SearpcError
-
+from seahub.profile.models import Profile, DetailedProfile
 from seahub.base.accounts import User
 from seahub.base.models import UserLastLogin
 from seahub.base.decorators import sys_staff_required
@@ -548,7 +548,7 @@ def user_remove(request, user_id):
 @sys_staff_required
 def remove_trial(request, user_or_org):
     """Remove trial account.
-    
+
     Arguments:
     - `request`:
     """
@@ -779,9 +779,15 @@ def user_add(request):
     post_values = request.POST.copy()
     post_email = request.POST.get('email', '')
     post_role = request.POST.get('role', DEFAULT_USER)
+
+    post_name = request.POST.get('name', '')
+    post_company_name = request.POST.get('company_name', '')
+
     post_values.update({
                         'email': post_email.lower(),
                         'role': post_role,
+                        'name': post_name,
+                        'company_name': post_company_name,
                       })
 
     form = AddUserForm(post_values)
@@ -790,10 +796,20 @@ def user_add(request):
         role = form.cleaned_data['role']
         password = form.cleaned_data['password1']
 
+        #name = form.cleaned_data['name']
+        #company_name = form.cleaned_data['company_name']
+
         user = User.objects.create_user(email, password, is_staff=False,
                                         is_active=True)
         if user:
             User.objects.update_role(email, role)
+
+
+        #add profile
+        Profile.objects.add_or_update(email, post_name, post_company_name)
+
+        #add detailed profile(not use)
+        #DetailedProfile.objects.add_detailed_profile(email,departement,telephone)
 
         if request.user.org:
             org_id = request.user.org.org_id
