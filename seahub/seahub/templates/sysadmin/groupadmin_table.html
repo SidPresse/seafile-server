@@ -1,15 +1,7 @@
-{% extends "sysadmin/base.html" %}
 {% load seahub_tags i18n %}
+{% load url from future %}
 
-{% block cur_groups %}tab-cur{% endblock %}
-{% block left_panel %}{{block.super}}
-<form action="{% url 'sys_group_search' %}" method="get" class="side-search-form">
-    <input type="text" name="group" class="input" value="" placeholder="{% trans "Search group..." %}" />
-</form>
-{% endblock %}
-
-{% block right_panel %}
-<h3 class="hd">{% trans "All Groups" %}</h3>
+<h3>{% trans "My Groups" %}</h3>
 
 {% if groups %}
 <table>
@@ -33,20 +25,4 @@
     </tr>
     {% endfor %}
 </table>
-
-{% include "snippets/admin_paginator.html" %}
-
-{% else %}
-<p>{% trans "Empty" %}</p>
 {% endif %}
-{% endblock %}
-
-{% block extra_script %}
-<script type="text/javascript">
-addConfirmTo($('.rm-grp'), {
-    'title': "{% trans "Delete Group" %}",
-    'con': "{% trans "Are you sure you want to delete %s ?" %}"
-});
-</script>
-{% endblock %}
- 

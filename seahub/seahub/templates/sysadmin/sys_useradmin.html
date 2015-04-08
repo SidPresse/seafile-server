@@ -26,7 +26,9 @@
         <li class="tabnav-tab"><a href="{% url 'sys_useradmin_admins' %}">{% trans "Admins" %}</a></li>
     </ul>
     <div class="fright">
-        <button id="upload-file-btn"><span class="icon-upload-alt"></span>{% trans "Import users" %}</button>
+    {% if is_lep %}
+         <button id="upload-file-btn"><span class="icon-upload-alt"></span>{% trans "Import users" %}</button>
+    {% endif %}     
          <button id="add-user-btn"><img src="{{ MEDIA_URL }}img/add.png" alt="" class="add vam" /><span class="vam">{% trans "Add user" %}</span></button>
     </div>
 </div>
