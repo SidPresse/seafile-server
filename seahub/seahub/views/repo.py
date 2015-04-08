@@ -9,6 +9,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.template.loader import render_to_string
+from django.utils.translation import ugettext as _
 
 import seaserv
 from seaserv import seafile_api
@@ -29,10 +30,10 @@ from seahub.utils import gen_file_upload_url, is_org_context, \
     get_fileserver_root, gen_dir_share_link, gen_shared_upload_link, \
     get_max_upload_file_size, new_merge_with_no_conflict, \
     get_commit_before_new_merge, user_traffic_over_limit, \
-    get_file_type_and_ext
+    get_file_type_and_ext,send_html_email
 from seahub.settings import ENABLE_SUB_LIBRARY, FORCE_SERVER_CRYPTO, \
-    ENABLE_UPLOAD_FOLDER, \
-    ENABLE_THUMBNAIL, THUMBNAIL_ROOT, THUMBNAIL_DEFAULT_SIZE, PREVIEW_DEFAULT_SIZE
+    ENABLE_UPLOAD_FOLDER,EMAIL_FROM,\
+    ENABLE_THUMBNAIL, THUMBNAIL_ROOT, THUMBNAIL_DEFAULT_SIZE, PREVIEW_DEFAULT_SIZE,SITE_NAME
 
 from seahub.utils.file_types import IMAGE
 from seahub.thumbnail.utils import get_thumbnail_src
@@ -154,6 +155,17 @@ def get_dir_shared_upload_link(uploadlink):
         dir_shared_upload_link = ''
     return dir_shared_upload_link
 
+def send_user_notification_mail(request, email, dir_shared_link):
+    """Send email when share file."""
+    c = {
+        'user': '%s' % EMAIL_FROM,
+        'org': request.user.org,
+        'email': email,
+        'dir_shared_link': dir_shared_link,
+        }
+    send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+            'share/user_share_file_email.html', c, None, [email])
+
 def render_repo(request, repo):
     """Steps to show repo page:
     If user has permission to view repo
@@ -168,6 +180,9 @@ def render_repo(request, repo):
     path = get_path_from_request(request)
     if not seafile_api.get_dir_id_by_path(repo.id, path):
         raise Http404
+    
+
+
 
     user_perm = check_repo_access_permission(repo.id, request.user)
     if user_perm is None:
@@ -243,6 +258,17 @@ def render_repo(request, repo):
     dir_shared_link = get_dir_share_link(fileshare)
     uploadlink = get_uploadlink(repo.id, username, path)
     dir_shared_upload_link = get_dir_shared_upload_link(uploadlink)
+
+    #for gg in repo_groups:
+        # Get all group members.
+    #    members = seaserv.get_group_members(gg.id)
+    #    for m in members:
+    #        send_user_notification_mail(request, m.user_name, dir_shared_link)
+    #        logger.warning(m.user_name)
+
+        
+    
+    #logger.warning(repo_group_str)
 
     if not repo.encrypted and ENABLE_THUMBNAIL:
         size = THUMBNAIL_DEFAULT_SIZE
