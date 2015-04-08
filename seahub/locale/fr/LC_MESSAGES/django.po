@@ -388,13 +388,13 @@ msgstr "Pas d'activité actuellement ou la fonction n'est pas supportée."
 #: seahub/api2/templates/api2/events_body.html:17
 #: seahub/templates/snippets/events_body.html:29
 msgid "Created library"
-msgstr "Bibliothèque créée"
+msgstr "Compte clients crée"
 
 #: seahub/api2/templates/api2/events_body.html:21
 #: seahub/templates/snippets/events_body.html:33
 #, python-format
 msgid "Deleted library %(library_name)s"
-msgstr "Bibliothèque %(library_name)s supprimée"
+msgstr "Compte clients %(library_name)s supprimée"
 
 #: seahub/api2/templates/api2/events_js.html:83
 #: seahub/message/templates/message/all_msg_list.html:118
@@ -426,7 +426,7 @@ msgstr "Pas de messages."
 
 #: seahub/auth/admin.py:29
 msgid "Personal info"
-msgstr "Informations personnelles"
+msgstr "Informations compte"
 
 #: seahub/auth/admin.py:30
 msgid "Permissions"
@@ -447,7 +447,7 @@ msgstr "Dates importantes"
 #: seahub/templates/sysadmin/sys_org_info_setting.html:9
 #: seahub/templates/sysadmin/sys_org_info_user.html:9
 msgid "Groups"
-msgstr "Groupes"
+msgstr "Clients"
 
 #: seahub/auth/admin.py:114
 msgid "Password changed successfully."
@@ -811,7 +811,7 @@ msgstr "Déplacement du dossier"
 
 #: seahub/base/templatetags/seahub_tags.py:118
 msgid "Reverted library to status at"
-msgstr "Retour de la bibliothèque à son état du "
+msgstr "Retour au compte clients à son état du "
 
 #: seahub/base/templatetags/seahub_tags.py:121
 #, python-format
@@ -824,7 +824,7 @@ msgstr "Récupération du dossier supprimé"
 
 #: seahub/base/templatetags/seahub_tags.py:127 seahub/views/ajax.py:1680
 msgid "Changed library name or description"
-msgstr "Le nom de la bibliothèque ou sa description a changé"
+msgstr "Le nom du compte clients ou sa description a changé"
 
 #: seahub/base/templatetags/seahub_tags.py:129
 msgid "Auto merge by seafile system"
@@ -1185,7 +1185,7 @@ msgstr "Impossible de créer le groupe de l'organisation."
 
 #: seahub/group/error_msg.py:15
 msgid "Permission error: only group staff can add member"
-msgstr "Erreur de permission : seuls les administrateurs du groupe peuvent ajouter des membres"
+msgstr "Erreur de permission : seuls les administrateurs du groupe peuvent ajouter des contacts clients"
 
 #: seahub/group/error_msg.py:16 seahub/group/error_msg.py:22
 msgid "Group does not exist"
@@ -1241,7 +1241,7 @@ msgstr "Vous n'avez pas la permission de créer un groupe."
 msgid ""
 "You can only create %d groups.<a href=\"http://seafile.com/\">Upgrade "
 "account.</a>"
-msgstr "Vous pouvez seulement créer %d groupes.<a href=\"http://seafile.com/\">Mettre à niveau.</a>"
+msgstr "Vous pouvez seulement créer %d clients.<a href=\"http://seafile.com/\">Mettre à niveau.</a>"
 
 #: seahub/group/views.py:190 seahub/group/views.py:330
 msgid "There is already a group with that name."
@@ -1362,7 +1362,7 @@ msgstr "Erreur : vous n'êtes pas dans le groupe %s."
 
 #: seahub/group/views.py:1029
 msgid "Error: the library does not exist."
-msgstr "Erreur : la bibliothèque n'existe pas."
+msgstr "Erreur : le compte clients n'existe pas."
 
 #: seahub/group/views.py:1032
 msgid "Error: no path."
@@ -1554,7 +1554,7 @@ msgstr "Ce groupe est public."
 #: seahub/templates/sysadmin/sys_org_info_setting.html:10
 #: seahub/templates/sysadmin/sys_org_info_user.html:10
 msgid "Libraries"
-msgstr "Bibliothèques"
+msgstr "Compte clients"
 
 #: seahub/group/templates/group/group_base.html:27
 #: seahub/group/templates/group/group_base.html:55
@@ -1576,7 +1576,7 @@ msgstr "Fichiers"
 #: seahub/templates/sysadmin/sys_org_info_setting.html:8
 #: seahub/templates/sysadmin/sys_org_info_user.html:8
 msgid "Members"
-msgstr "Membres"
+msgstr "Contact client"
 
 #: seahub/group/templates/group/group_base.html:40
 #: seahub/templates/base.html:91
@@ -1682,7 +1682,7 @@ msgstr "Changements récents"
 #: seahub/templates/snippets/my_owned_repos.html:16
 #: seahub/templates/snippets/repo_create_form.html:3
 msgid "New Library"
-msgstr "Nouvelle bibliothèque"
+msgstr "Nouveau compte clients"
 
 #: seahub/group/templates/group/group_info.html:24
 #: seahub/group/templates/group/group_info.html:75
@@ -1771,7 +1771,7 @@ msgstr "Les bibliothèques partagées en écriture peuvent être téléchargées
 #: seahub/templates/activities.html:19 seahub/templates/file_edit.html:241
 #: seahub/templates/starred.html:14
 msgid "Library"
-msgstr "Bibliothèque"
+msgstr "Compte clients"
 
 #: seahub/group/templates/group/group_info.html:76
 msgid "Modified at"
@@ -1904,7 +1904,7 @@ msgstr "Paramètres"
 
 #: seahub/group/templates/group/group_manage.html:15
 msgid "Add Members"
-msgstr "Ajouter des membres"
+msgstr "Ajouter des contacts clients"
 
 #: seahub/group/templates/group/group_manage.html:16
 msgid "Add Admins"
@@ -1968,7 +1968,7 @@ msgstr "Voulez-vous réellement supprimer ce groupe?"
 
 #: seahub/group/templates/group/group_manage.html:146
 msgid "Delete Member"
-msgstr "Supprimer des membres"
+msgstr "Supprimer des contacts clients"
 
 #: seahub/group/templates/group/group_manage.html:147
 #, python-format
@@ -2013,7 +2013,7 @@ msgstr "Créé le : "
 
 #: seahub/group/templates/group/group_pubinfo.html:16
 msgid "Members: "
-msgstr "Membres : "
+msgstr "Contact client : "
 
 #: seahub/group/templates/group/group_pubinfo.html:21
 msgid "Verification Message"
@@ -2158,15 +2158,15 @@ msgstr "Conseils"
 #: seahub/group/templates/group/groups_left_panel.html:6
 msgid ""
 "After creating a group, you can add members and share libraries into it."
-msgstr "Après avoir créé un groupe, vous pouvez ajouter des membres et partager des bibliothèques avec eux."
+msgstr "Après avoir créé un client, vous pouvez ajouter des contacts clients et partager des bibliothèques avec eux."
 
 #: seahub/group/templates/group/groups_left_panel.html:8
 msgid "Since you are a guest user now, you can not create groups."
-msgstr "Comme vous êtes un utilisateur invité vous ne pouvez pas créer des groupes."
+msgstr "Comme vous êtes un utilisateur invité vous ne pouvez pas créer des clients."
 
 #: seahub/group/templates/group/groups_right_panel.html:4
 msgid "My Groups"
-msgstr "Mes groupes"
+msgstr "Mes clients"
 
 #: seahub/group/templates/group/groups_right_panel.html:6
 #: seahub/group/templates/group/groups_right_panel.html:40
@@ -2192,7 +2192,7 @@ msgstr "Un groupe est un espace où vous et vos partenaires pouvez échanger et 
 msgid ""
 "Group is a place for you and your friends leaving messages and collaborating"
 " on libraries. Groups you join will be listed here."
-msgstr "Un groupe est un espace où vous et vos partenaires peuvent déposer des messages et collaborer dans des bibliothèques. Les groupes que vous avez rejoints sont listés ici."
+msgstr "Un groupe est un espace où vous et vos partenaires peuvent déposer des messages et collaborer dans des bibliothèques. Les clients que vous avez rejoints sont listés ici."
 
 #: seahub/group/templates/group/groups_right_panel.html:41
 msgid "Group Name"
@@ -2200,7 +2200,7 @@ msgstr "Nom du groupe"
 
 #: seahub/group/templates/group/grpmember_add_form.html:3
 msgid "Add members"
-msgstr "Ajouter des membres"
+msgstr "Ajouter des contacts clients"
 
 #: seahub/group/templates/group/grpmember_add_form.html:6
 #: seahub/templates/snippets/repo_share_form.html:6
@@ -2985,14 +2985,14 @@ msgstr "Saisissez un mot de passe correct."
 
 #: seahub/share/views.py:87
 msgid "Failed to share to all members, please try again later."
-msgstr "Échec de partage avec tous les membres, veuillez réessayer plus tard."
+msgstr "Échec de partage avec tous les contacts clients, veuillez réessayer plus tard."
 
 #: seahub/share/views.py:89
 #, python-format
 msgid ""
 "Shared to all members successfully, go check it at <a "
 "href=\"%s\">Shares</a>."
-msgstr "Partagé avec tous les membres avec succès, vous pouvez vérifier sur <a href=\"%s\">Partages</a>."
+msgstr "Partagé avec tous les contacts clients avec succès, vous pouvez vérifier sur <a href=\"%s\">Partages</a>."
 
 #: seahub/share/views.py:107
 #, python-format
@@ -3070,7 +3070,7 @@ msgstr "Partage supprimé avec succès"
 
 #: seahub/share/views.py:390
 msgid "all members"
-msgstr "Tous les membres"
+msgstr "Tous les contacts clients"
 
 #: seahub/share/views.py:723 seahub/share/views.py:1094
 #: seahub/views/__init__.py:888 seahub/views/__init__.py:1357
@@ -3393,7 +3393,7 @@ msgstr "Administration"
 #: seahub/templates/base.html:180
 #: seahub/templates/sysadmin/sys_group_admin.html:7
 msgid "All Groups"
-msgstr "Tous les groupes"
+msgstr "Tous les clients"
 
 #: seahub/templates/decrypt_repo_form.html:7
 msgid ""
@@ -3897,7 +3897,7 @@ msgstr "À propos de nous"
 
 #: seahub/templates/home_base.html:8
 msgid "Personal"
-msgstr "Personnel"
+msgstr "Mon bureau"
 
 #: seahub/templates/home_base.html:15 seahub/templates/starred.html:8
 msgid "Starred"
@@ -3998,7 +3998,7 @@ msgstr "Veuillez choisir un dossier"
 
 #: seahub/templates/myhome_base.html:6
 msgid "My Home"
-msgstr "Dossier personnel"
+msgstr "Mon bureau"
 
 #: seahub/templates/myhome_base.html:13 seahub/templates/pub_base.html:5
 #: seahub/templates/pub_base.html.py:10
@@ -4008,15 +4008,15 @@ msgstr "Organisation"
 
 #: seahub/templates/pubgrp.html:10
 msgid "Search groups..."
-msgstr "Recherche de groupes..."
+msgstr "Recherche mes clients..."
 
 #: seahub/templates/pubgrp.html:33
 msgid "No group found"
-msgstr "Pas de groupe trouvé"
+msgstr "Pas de client trouvé"
 
 #: seahub/templates/pubgrp.html:38
 msgid "No one has created any groups yet"
-msgstr "Personne n'a encore créé de groupes"
+msgstr "Personne n'a encore créé de client"
 
 #: seahub/templates/pubgrp.html:39
 msgid "You can click \"Add Group\" button under \"Group\" label to create a group. "
@@ -4039,7 +4039,7 @@ msgstr "Vous pouvez créer une bibliothèque publique en cliquant sur le bouton 
 
 #: seahub/templates/pubuser.html:10
 msgid "Search members..."
-msgstr "Recherche de membres..."
+msgstr "Recherche de contacts clients..."
 
 #: seahub/templates/pubuser.html:17
 msgid "Search Results"
@@ -4508,7 +4508,7 @@ msgstr "Veuillez sélectionner au moins un contact."
 #: seahub/templates/repo.html:2345
 #: seahub/templates/snippets/myhome_extra_script.html:86
 msgid "Please enter emails or groups, or select some."
-msgstr "Veuillez entrer des adresses mails ou des groupes ou les sélectionner."
+msgstr "Veuillez entrer des adresses mails ou des clients ou les sélectionner."
 
 #: seahub/templates/repo_access_deny.html:8
 msgid "You can't access this library."
@@ -5337,7 +5337,7 @@ msgstr "Erreur inconnue."
 
 #: seahub/templates/snippets/my_owned_repos.html:7
 msgid "Mine"
-msgstr "Personnelles"
+msgstr "Compte"
 
 #: seahub/templates/snippets/my_owned_repos.html:9
 msgid "Sub-libraries"
@@ -5477,7 +5477,7 @@ msgstr "Partage %(lib_name)s"
 
 #: seahub/templates/snippets/repo_share_form.html:11
 msgid "Emails or Groups, Seperated by ','"
-msgstr "Emails ou groupes, séparés par ','"
+msgstr "Emails ou clients, séparés par ','"
 
 #: seahub/templates/snippets/repo_share_form.html:14
 msgid ""
@@ -5746,11 +5746,11 @@ msgstr "Retour vers la liste des organisations"
 
 #: seahub/templates/sysadmin/sys_org_info_base.html:21
 msgid "Number of members"
-msgstr "Nombre de membres"
+msgstr "Nombre de contacts clients"
 
 #: seahub/templates/sysadmin/sys_org_info_base.html:23
 msgid "Number of groups"
-msgstr "Nombre de groupes"
+msgstr "Nombre de clients"
 
 #: seahub/templates/sysadmin/sys_org_info_base.html:29
 #: seahub/templates/sysadmin/userinfo.html:49
@@ -5938,7 +5938,7 @@ msgstr "Rôle"
 msgid ""
 "You can also add a user as a guest, who will not be allowed to create "
 "libraries and groups."
-msgstr "Vous pouvez aussi ajouter un utilisateur comme invité, qui ne sera pas autorisé à créer des bibliothèques et des groupes."
+msgstr "Vous pouvez aussi ajouter un utilisateur comme invité, qui ne sera pas autorisé à créer des bibliothèques et des clients."
 
 #: seahub/templates/sysadmin/sys_useradmin.html:41
 #: seahub/templates/sysadmin/sys_useradmin_admins.html:77
