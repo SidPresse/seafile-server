@@ -34,7 +34,7 @@
                     {% if seacloud_mode %}
                     <img src="{{ MEDIA_URL }}img/seacloud_logo.png?t=1422101270" title="{% trans "Home" %}" alt="logo" width="186" height="31" />
                     {% else %}
-                    <img src="{{ logo_path }}" title="{% trans "Home" %}" alt="logo" width="{{logo_width}}" height="{{logo_height}}" />
+                    <img src="{{MEDIA_URL}}{{ logo_path }}" title="{% trans "Home" %}" alt="logo" width="{{logo_width}}" height="{{logo_height}}" />
                     {% endif %}
                 </a>
                 {% block nav %}{% endblock %}

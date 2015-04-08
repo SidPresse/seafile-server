@@ -48,3 +48,7 @@
     </div>
     {% endif %}
 </div>
+<form id="search-user-form" method="get" action=".">
+  <label>{% trans "Email" %}</label><input type="text" name="email" class="input" value="{{email}}" /><br />
+  <input type="submit" value="{% trans "Submit" %}" class="submit" />
+</form>
