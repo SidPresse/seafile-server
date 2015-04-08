@@ -11,7 +11,7 @@ from seahub.views.file import view_file, view_history_file, view_trash_file,\
 from seahub.views.repo import repo, repo_history_view, view_shared_dir, \
     view_shared_upload_link
 from notifications.views import notification_list
-from group.views import group_list
+from group.views import group_list, group_search
 from message.views import user_msg_list, user_msg_remove, user_received_msg_remove
 from share.views import user_share_list, gen_private_file_share, \
     rm_private_file_share, save_private_file_share
@@ -168,7 +168,8 @@ urlpatterns = patterns('',
     (r'^notification/', include('seahub.notifications.urls')),
     (r'^contacts/', include('seahub.contacts.urls')),                       
     (r'^group/', include('seahub.group.urls')),
-    url(r'^groups/', group_list, name='group_list'),
+    url(r'^groups/$', group_list, name='group_list'),
+    url(r'^groups/search/$', group_search, name='group_search'),
     (r'^message/', include('seahub.message.urls')),
     (r'^options/', include('seahub.options.urls')),     
     (r'^profile/', include('seahub.profile.urls')),
@@ -187,6 +188,7 @@ urlpatterns = patterns('',
     url(r'^sys/useradmin/ldap/$', sys_user_admin_ldap, name='sys_useradmin_ldap'),
     url(r'^sys/useradmin/admins/$', sys_user_admin_admins, name='sys_useradmin_admins'),
     url(r'^sys/groupadmin/$', sys_group_admin, name='sys_group_admin'),
+    url(r'^sys/groupadmin/search/$', sys_group_search, name='sys_group_search'),
     url(r'^sys/orgadmin/$', sys_org_admin, name='sys_org_admin'),
     url(r'^sys/orgadmin/(?P<org_id>\d+)/set_quota/$', sys_org_set_quota, name='sys_org_set_quota'),
     url(r'^sys/orgadmin/(?P<org_id>\d+)/rename/$', sys_org_rename, name='sys_org_rename'),
