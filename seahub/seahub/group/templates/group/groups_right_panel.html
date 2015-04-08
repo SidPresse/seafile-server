@@ -2,9 +2,6 @@
 {% load url from future %}
 
 <h3>{% trans "My Groups" %}</h3>
-{% if user.permissions.can_add_group %}
-<button id="group-add"><img src="{{ MEDIA_URL }}img/add.png" alt="" class="add vam" /><span class="vam">{% trans "New Group" %}</span></button>
-{% endif %}
 {% if joined_groups %}
 <ul class="group-list w100 ovhd">
     {% for group in joined_groups %}
@@ -18,7 +15,7 @@
             <a href="{% url 'group_info' group.props.id %}" title="{% trans "Libraries" %}" class="a"><img src="{{MEDIA_URL}}img/lib.png" alt="" /></a>
             <a href="{% url 'group_discuss' group.props.id %}" title="{% trans "Discussion" %}" class="a"><img src="{{MEDIA_URL}}img/msgs.png" alt="" /></a>
             {% if group.wiki_enabled %}
-            <a href="{% url 'group_wiki' group.props.id %}" title="{% trans "Wiki" %}" class="a"><img src="{{MEDIA_URL}}img/wiki.png" alt="" /></a>
+            <!--<a href="{% url 'group_wiki' group.props.id %}" title="{% trans "Wiki" %}" class="a"><img src="{{MEDIA_URL}}img/wiki.png" alt="" /></a>-->
             {% endif %}
         </div>
     </div>
