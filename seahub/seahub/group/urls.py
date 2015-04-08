@@ -43,6 +43,7 @@ urlpatterns = patterns('',
     url(r'^(?P<group_id>\d+)/discussion/add/$', group_add_discussion, name='group_add_discussion'),
     url(r'^add/$', group_add, name='group_add'),
 
+
     url(r'^ajax/(?P<group_id>\d+)/member/add/$', ajax_add_group_member, name='group_add_member'),
 )
 

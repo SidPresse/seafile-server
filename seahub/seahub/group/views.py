@@ -238,8 +238,40 @@ def group_list(request):
 
 
     return render_to_response('group/groups.html', {
+            'group':'Search group...',
             'joined_groups': joined_groups,
             }, context_instance=RequestContext(request))
+
+
+@login_required
+def group_search(request):
+    """Search groups"""
+    group_found=[]
+    joined_groups = request.user.joined_groups
+    group_search = request.GET.get('group', '')
+
+    enabled_groups = get_wiki_enabled_group_list(
+        in_group_ids=[x.id for x in joined_groups])
+    enabled_group_ids = [ int(x.group_id) for x in enabled_groups ]
+
+    for group in joined_groups:
+        if group.id in enabled_group_ids:
+            group.wiki_enabled = True
+        else:
+            group.wiki_enabled = False
+
+        if group_search.lower() in group.props.group_name.lower() :
+            group_found.append(group)
+
+    # redirect user, is not staff
+    if not request.user.is_staff:
+        return HttpResponseRedirect('/')
+
+    return render_to_response('group/groups.html', {
+            'joined_groups': group_found,
+            'group': group_search,
+            }, context_instance=RequestContext(request))
+
 
 @login_required
 @sys_staff_required
