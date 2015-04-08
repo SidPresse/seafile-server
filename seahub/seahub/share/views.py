@@ -843,7 +843,7 @@ def send_shared_link(request):
         data = json.dumps({'error':_(u'Sending shared link failed. Email service is not properly configured, please contact administrator.')})
         return HttpResponse(data, status=500, content_type=content_type)
 
-    from seahub.settings import SITE_NAME
+    from seahub.settings import SITE_NAME, EMAIL_FROM
 
     form = FileLinkShareForm(request.POST)
     if form.is_valid():
@@ -860,7 +860,7 @@ def send_shared_link(request):
                              email=to_email)
 
             c = {
-                'email': request.user.username,
+                'email': '%s' % EMAIL_FROM,
                 'to_email': to_email,
                 'file_shared_link': file_shared_link,
                 'file_shared_name': file_shared_name,
@@ -870,7 +870,7 @@ def send_shared_link(request):
                 c['extra_msg'] = extra_msg
 
             if REPLACE_FROM_EMAIL:
-                from_email = request.user.username
+                from_email = request.user.username 
             else:
                 from_email = None  # use default from email
 
