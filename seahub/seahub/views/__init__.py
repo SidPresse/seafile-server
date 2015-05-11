@@ -1030,6 +1030,9 @@ def myhome(request):
 
     # mine
     owned_repos = get_owned_repo_list(request)
+    for xx in owned_repos:
+        logger.warning(xx.props.name)
+
     calculate_repos_last_modify(owned_repos)
     owned_repos.sort(lambda x, y: cmp(y.latest_modify, x.latest_modify))
 

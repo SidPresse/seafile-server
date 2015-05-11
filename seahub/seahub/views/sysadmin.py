@@ -217,6 +217,8 @@ def sys_user_admin(request):
         trial_users = TrialAccount.objects.filter(user_or_org__in=[x.email for x in users])
     else:
         trial_users = []
+
+
     for user in users:
         if user.props.id == request.user.id:
             user.is_self = True
@@ -239,6 +241,14 @@ def sys_user_admin(request):
         for trial_user in trial_users:
             if trial_user.user_or_org == user.email:
                 user.trial_info = {'expire_date': trial_user.expire_date}
+
+        profile = Profile.objects.get_profile_by_user(user.email)
+        d_profile = DetailedProfile.objects.get_detailed_profile_by_user(user.email)
+        user.detailed=''
+        if profile:
+            user.detailed= profile.intro  + ' : ' + profile.nickname
+
+
 
     have_ldap = True if len(get_emailusers('LDAP', 0, 1)) > 0 else False
 

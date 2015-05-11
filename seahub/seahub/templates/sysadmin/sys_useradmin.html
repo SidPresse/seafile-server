@@ -76,22 +76,22 @@
 
 {% block extra_script %}
 <script type="text/javascript">
-$(function(){
+//$(function(){
     // check if server version is the latest one
-    $.ajax({
-        url: 'http://seafile.com/ajax/check_server_version/?v=' + e('{{seafile_version}}') + '&p=' + e('{{platform}}') + '&id=' + '{{server_id}}' + '&pro=' + '{{pro_server}}',
-        dataType: 'jsonp',
-        jsonpCallback: 'xx',
-        crossDomain: true,
-        success: function(data) {
-            if (data['need_update']) {
-                var tip = "{% trans "A new server version %(v)s is available." %}";
-                tip = tip.replace('%(v)s', data['new_version']);
-                $('#title-panel').html('<p class="alc" style="background:#fddaa4;color:#1f0600;padding:3px 0;margin:0 0 15px;">' + tip + '</p>').removeClass('hide');
-            }
-        }
-    });
-});
+    //$.ajax({
+    //    url: 'http://seafile.com/ajax/check_server_version/?v=' + e('{{seafile_version}}') + '&p=' + e('{{platform}}') + '&id=' + '{{server_id}}' + '&pro=' + '{{pro_server}}',
+    //    dataType: 'jsonp',
+    //    jsonpCallback: 'xx',
+    //    crossDomain: true,
+    //    success: function(data) {
+    //        if (data['need_update']) {
+     //           var tip = "{% trans "A new server version %(v)s is available." %}";
+    //            tip = tip.replace('%(v)s', data['new_version']);
+    //            $('#title-panel').html('<p class="alc" style="background:#fddaa4;color:#1f0600;padding:3px 0;margin:0 0 15px;">' + tip + '</p>').removeClass('hide');
+    //        }
+    //    }
+    //});
+//});
 $('#add-user-form').submit(function() {
     var form = $(this),
         form_id = $(this).attr('id'),

@@ -17,7 +17,7 @@
         {% endif %}
         <li class="tabnav-tab tabnav-tab-cur"><a href="{% url 'sys_useradmin_admins' %}">{% trans "Admins" %}</a></li>
     </ul>
-    <button id="add-admin-btn" class="fright"><img src="{{ MEDIA_URL }}img/add.png" alt="" class="add vam" /><span class="vam">{% trans "Add admin" %}</span></button>
+    
 </div>
 
 <form id="add-admin-form"  method="post" name="add-admin-form" class="tab-popup hide">{% csrf_token %}
@@ -40,8 +40,8 @@
 <table>
     <tr>
         <th width="24%">{% trans "Email" %}</th>
-        <th width="12%">{% trans "Status" %}</th>
-        <th width="12%">{% trans "Role" %}</th>
+        <!--<th width="12%">{% trans "Status" %}</th>-->
+        <!--<th width="12%">{% trans "Role" %}</th>-->
         <th width="16%">{% trans "Space Used" %}</th>
         <th width="22%">{% trans "Create At / Last Login" %}</th>
         <th width="14%">{% trans "Operations" %}</th>
@@ -50,7 +50,7 @@
     {% for user in admin_users %}
     <tr data-userid="{{user.email}}">
         <td data="{{user.id}}"><a href="{{ SITE_ROOT }}useradmin/info/{{ user.props.email }}/">{{ user.email }}</a></td>
-
+<!--
         <td>
           {% if user.source != 'LDAP' %}
             <div class="user-status">
@@ -67,7 +67,8 @@
             </select>
           {% endif %}
         </td>
-        
+      -->  
+      <!--
         <td>
           {% if user.source != 'LDAP' %}
             <div class="user-role">
@@ -88,7 +89,7 @@
             {% endif %}
           {% endif %}
         </td>
-
+        -->
         <td style="font-size:11px;">
             <p> {{ user.space_usage|filesizeformat }} {% if user.space_quota > 0 %} / {{ user.space_quota|filesizeformat }} {% endif %} </p>
             {% if not user.org %}

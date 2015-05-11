@@ -9,7 +9,18 @@
 {% endblock %}
 
 {% block right_panel %}
-<h3 class="hd">{% trans "All Groups" %}</h3>
+
+<div class="tabnav ovhd">
+    <ul class="tabnav-tabs fleft">
+        <li class="tabnav-tab tabnav-tab-cur"><h3 class="hd">{% trans "All Groups" %}</h3></li>
+    </ul>
+    <div class="fright">
+         {% if user.permissions.can_add_group %}
+        <button id="group-add"><img src="{{ MEDIA_URL }}img/add.png" alt="" class="add vam" /><span class="vam">{% trans "New Group" %}</span></button>
+        {% endif %}
+    </div>
+</div>
+
 
 {% if groups %}
 <table>
@@ -34,6 +45,18 @@
     {% endfor %}
 </table>
 
+{% if user.permissions.can_add_group %}
+<form id="group-add-form" action="" method="post" name="group-add-form" class="hide">{% csrf_token %}
+    <h3>{% trans "New Group" %}</h3>
+    <label>{% trans "Group Name" %}</label><br />
+    <input id="group_name" name="group_name" value="" class="input" /><br />
+    <p class="error hide"></p>
+    <input id="group-add-submit" type="submit" class="submit" value="{% trans "Submit" %}" />
+</form>
+{% endif %}
+
+
+
 {% include "snippets/admin_paginator.html" %}
 
 {% else %}
@@ -47,6 +70,24 @@ addConfirmTo($('.rm-grp'), {
     'title': "{% trans "Delete Group" %}",
     'con': "{% trans "Are you sure you want to delete %s ?" %}"
 });
+
+{% if user.permissions.can_add_group %}
+{% url 'group_add' as group_add_url %}
+{% with post_url=group_add_url %}
+{% include "snippets/group_add_js.html" %}
+{% endwith %}
+{% endif %}
+
+$('.group').hover(
+    function() {
+        $(this).addClass('group-hl'); 
+        $('.fast', $(this)).removeClass('vh');
+    },
+    function() {
+        $(this).removeClass('group-hl'); 
+        $('.fast', $(this)).addClass('vh');
+    }
+);
 </script>
 {% endblock %}
  
