@@ -21,7 +21,7 @@ from seaserv import seafile_api
 from seaserv import ccnet_threaded_rpc, is_org_group, \
     get_org_id_by_group, del_org_group_repo
 from pysearpc import SearpcError
-
+from seahub.options.models import UserOptions
 from seahub.share.forms import RepoShareForm, FileLinkShareForm, \
     UploadLinkShareForm
 from seahub.share.models import FileShare, PrivateFileDirShare, \
@@ -41,7 +41,9 @@ from seahub.utils import render_permission_error, string2list, render_error, \
     gen_file_share_link, IS_EMAIL_CONFIGURED, check_filename_with_rename, \
     is_valid_username, send_html_email, is_org_context, \
     normalize_file_path, normalize_dir_path
-from seahub.settings import SITE_ROOT, REPLACE_FROM_EMAIL, ADD_REPLY_TO_HEADER
+from seahub.settings import SITE_ROOT, REPLACE_FROM_EMAIL, ADD_REPLY_TO_HEADER,\
+    SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
+    ENABLE_SUB_LIBRARY, ENABLE_REPO_HISTORY_SETTING, REPO_PASSWORD_MIN_LENGTH
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -497,6 +499,24 @@ def list_priv_shared_files(request):
             "priv_share_in": priv_share_in,
             }, context_instance=RequestContext(request))
 
+
+
+def get_virtual_repos_by_owner(request):
+    """List virtual repos.
+
+    Arguments:
+    - `request`:
+    """
+    username = request.user.username
+    if is_org_context(request):
+        org_id = request.user.org.org_id
+        return seaserv.seafserv_threaded_rpc.get_org_virtual_repos_by_owner(
+            org_id, username)
+    else:
+        return seafile_api.get_virtual_repos_by_owner(username)    
+
+
+
 @login_required
 @user_mods_check
 def list_priv_shared_folders(request):
@@ -505,6 +525,21 @@ def list_priv_shared_folders(request):
     Arguments:
     - `request`:
     """
+    def get_abbrev_origin_path(repo_name, path):
+        if len(path) > 20:
+            abbrev_path = path[-20:]
+            return repo_name + '/...' + abbrev_path
+        else:
+            return repo_name + path
+    username = request.user.username        
+    # compose abbrev origin path for display
+    sub_repos = []
+    sub_lib_enabled = UserOptions.objects.is_sub_lib_enabled(username)
+    if ENABLE_SUB_LIBRARY and sub_lib_enabled:
+        sub_repos = get_virtual_repos_by_owner(request)
+        
+
+
     share_out_repos = list_share_out_repos(request)
 
     shared_folders = []
@@ -521,6 +556,12 @@ def list_priv_shared_folders(request):
 
         if repo.props.share_type == 'personal':
             repo.props.user_info = repo.props.user
+
+        for repoA in sub_repos:
+            if repo.props.repo_id == repoA.id:
+                #repo_desc use to store origin path
+                repo.props.repo_desc=get_abbrev_origin_path(repoA.origin_repo_name,
+                                                             repoA.origin_path)
         shared_folders.append(repo)
 
     shared_folders.sort(lambda x, y: cmp(x.repo_id, y.repo_id))
@@ -843,7 +884,7 @@ def send_shared_link(request):
         data = json.dumps({'error':_(u'Sending shared link failed. Email service is not properly configured, please contact administrator.')})
         return HttpResponse(data, status=500, content_type=content_type)
 
-    from seahub.settings import SITE_NAME
+    from seahub.settings import SITE_NAME, EMAIL_FROM
 
     form = FileLinkShareForm(request.POST)
     if form.is_valid():
@@ -860,7 +901,7 @@ def send_shared_link(request):
                              email=to_email)
 
             c = {
-                'email': request.user.username,
+                'email': '%s' % EMAIL_FROM,
                 'to_email': to_email,
                 'file_shared_link': file_shared_link,
                 'file_shared_name': file_shared_name,
@@ -870,7 +911,7 @@ def send_shared_link(request):
                 c['extra_msg'] = extra_msg
 
             if REPLACE_FROM_EMAIL:
-                from_email = request.user.username
+                from_email = request.user.username 
             else:
                 from_email = None  # use default from email
 

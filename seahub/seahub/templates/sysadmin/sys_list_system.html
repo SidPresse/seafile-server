@@ -21,13 +21,13 @@
 <table>
     <tr>
         <th width="25%">{% trans "Name" %}</th>
-        <th width="35%">ID</th>
+       
         <th width="40%">{% trans "Description" %}</th>
     </tr>
     {% for repo in repos %}
     <tr>
         <td><a href="{% url 'repo' repo.id %}">{{ repo.props.name }}</a></td>
-        <td style="font-size:11px;">{{ repo.id }}</td>
+ 
         <td>{{ repo.props.desc }}</td>
     </tr>
     {% endfor %}

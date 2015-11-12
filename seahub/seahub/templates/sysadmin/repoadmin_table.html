@@ -2,7 +2,6 @@
 <table class="repo-list">
     <tr>
         <th width="15%">{% trans "Name" %}</th>
-        <th width="25%">ID</th>
         <th width="25%">{% trans "Owner" %}</th>
         <th width="22%">{% trans "Description" %}</th>
         <th width="13%">{% trans "Operations" %}</th>
@@ -10,7 +9,6 @@
     {% for repo in repos %}
     <tr>
         <td>{{ repo.props.name }}</td>
-        <td style="font-size:11px;">{{ repo.id }}</td>
         <td>
             {% if repo.owner %}
             <a href="{{ SITE_ROOT }}useradmin/info/{{ repo.owner }}/">{{ repo.owner}}</a>

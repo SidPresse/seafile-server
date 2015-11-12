@@ -449,6 +449,7 @@ def new_dir(repo_id, parent_dir, dirent_name, username):
     content_type = 'application/json; charset=utf-8'
 
     # create new dirent
+    logger.warning(repo_id + '##' + parent_dir + '##' + dirent_name + '##' + username)
     try:
         seafile_api.post_dir(repo_id, parent_dir, dirent_name, username)
     except SearpcError, e:
@@ -1212,6 +1213,9 @@ def upload_file_done(request):
     if seafile_api.get_file_id_by_path(repo_id, file_path) is None:
         result['error'] = _('File does not exist')
         return HttpResponse(json.dumps(result), status=400, content_type=ct)
+
+    
+
 
     # send singal
     upload_file_successful.send(sender=None,

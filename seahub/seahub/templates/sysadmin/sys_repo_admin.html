@@ -11,9 +11,10 @@
 {% block right_panel %}
 <div class="tabnav">
     <ul class="tabnav-tabs">
-        <li class="tabnav-tab tabnav-tab-cur"><a href="{% url 'sys_repo_admin' %}">{% trans "All" %}</a></li>
-        <li class="tabnav-tab"><a href="{% url 'sys_list_orphan' %}">{% trans "Orphan" %}</a></li>
-        <li class="tabnav-tab"><a href="{% url 'sys_list_system' %}">{% trans "System" %}</a></li>
+        <!--<li class="tabnav-tab tabnav-tab-cur"><a href="{% url 'sys_repo_admin' %}">{% trans "All Libraries and Sub-library" %}</a></li>-->
+        <li class="tabnav-tab tabnav-tab-cur"><h3 class="hd">{% trans "All Libraries and Sub-library" %}</h3></li>
+       <!-- <li class="tabnav-tab"><a href="{% url 'sys_list_orphan' %}">{% trans "Orphan" %}</a></li>-->
+       <!-- <li class="tabnav-tab"><a href="{% url 'sys_list_system' %}">{% trans "System" %}</a></li>-->
     </ul>
 </div>
 

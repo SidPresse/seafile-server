@@ -26,7 +26,7 @@
         <dt>{% trans "Name" context "true name" %}</dt>
         <dd>{{ profile.nickname }}</dd>
 
-        <dt>{% trans "Self-introduction" %}</dt>
+        <dt>{% trans "Company name" %}</dt>
         <dd>{{ profile.intro }}</dd>
         {% endif %}
 
@@ -46,7 +46,7 @@
     <p>{% trans "Sharing" %}: {{ share_usage|filesizeformat }} {% if share_quota > 0 %} / {{ share_quota|filesizeformat }} {% endif %}</p>
     {% endif %}
 
-    <a href="#" id="set-quota">{% trans "Set Quota" %}</a>
+    <!--<a href="#" id="set-quota">{% trans "Set Quota" %}</a>-->
 </div>
 <form id="set-quota-form" method="post" class="hide">{% csrf_token %}
     <h3>{% trans "Set user storage limit" %}</h3>

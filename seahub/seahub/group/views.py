@@ -47,15 +47,25 @@ from seahub.settings import SITE_ROOT, SITE_NAME
 from seahub.shortcuts import get_first_object_or_none
 from seahub.utils import render_error, render_permission_error, string2list, \
     gen_file_get_url, get_file_type_and_ext, \
-    calc_file_path_hash, is_valid_username, send_html_email, is_org_context
+    calc_file_path_hash, is_valid_username, send_html_email, is_org_context, \
+    IS_EMAIL_CONFIGURED, send_html_email, \
+    is_valid_username, is_ldap_user, is_user_password_strong
 from seahub.utils.file_types import IMAGE
 from seahub.utils.paginator import Paginator
 from seahub.views import is_registered_user
 from seahub.views.modules import get_enabled_mods_by_group, MOD_GROUP_WIKI, \
     enable_mod_for_group, disable_mod_for_group, get_available_mods_by_group, \
     get_wiki_enabled_group_list
-    
+
 from seahub.forms import SharedRepoCreateForm
+from seahub.base.accounts import User
+from seahub.profile.models import Profile, DetailedProfile
+from seahub.settings import INIT_PASSWD, SITE_NAME, \
+    SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
+    ENABLE_GUEST
+
+from seahub.profile.forms import  ProfileForm
+
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -63,7 +73,7 @@ logger = logging.getLogger(__name__)
 ########## ccnet rpc wrapper
 def create_group(group_name, username):
     return seaserv.ccnet_threaded_rpc.create_group(group_name, username)
-    
+
 def create_org_group(org_id, group_name, username):
     return seaserv.ccnet_threaded_rpc.create_org_group(org_id, group_name,
                                                        username)
@@ -72,7 +82,7 @@ def get_all_groups(start, limit):
     return seaserv.ccnet_threaded_rpc.get_all_groups(start, limit)
 
 def org_user_exists(org_id, username):
-    return seaserv.ccnet_threaded_rpc.org_user_exists(org_id, username) 
+    return seaserv.ccnet_threaded_rpc.org_user_exists(org_id, username)
 
 ########## helper functions
 def is_group_staff(group, user):
@@ -83,7 +93,7 @@ def is_group_staff(group, user):
 def remove_group_common(group_id, username, org_id=None):
     """Common function to remove a group, and it's repos,
     If ``org_id`` is provided, also remove org group.
-    
+
     Arguments:
     - `group_id`:
     """
@@ -91,7 +101,7 @@ def remove_group_common(group_id, username, org_id=None):
     seaserv.seafserv_threaded_rpc.remove_repo_group(group_id)
     if org_id is not None and org_id > 0:
         seaserv.ccnet_threaded_rpc.remove_org_group(org_id, group_id)
-    
+
 def group_check(func):
     """
     Decorator for initial group permission check tasks
@@ -137,7 +147,7 @@ def group_check(func):
         if group.is_pub:
             group.view_perm = "pub"
             return func(request, group, *args, **kwargs)
-            
+
         # Return group public info page.
         return render_to_response('group/group_pubinfo.html', {
                 'group': group,
@@ -161,7 +171,7 @@ def group_add(request):
             result['error'] = _(u'You do not have permission to create group.')
             return HttpResponse(json.dumps(result), status=403,
                                 content_type=content_type)
-        
+
     # check plan
     num_of_groups = getattr(request.user, 'num_of_groups', -1)
     if num_of_groups > 0:
@@ -170,7 +180,7 @@ def group_add(request):
             result['error'] = _(u'You can only create %d groups.<a href="http://seafile.com/">Upgrade account.</a>') % num_of_groups
             return HttpResponse(json.dumps(result), status=403,
                                 content_type=content_type)
-    
+
     form = GroupAddForm(request.POST)
     if form.is_valid():
         group_name = form.cleaned_data['group_name']
@@ -222,11 +232,47 @@ def group_list(request):
             group.wiki_enabled = True
         else:
             group.wiki_enabled = False
+    # redirect user, is not staff
+    if not request.user.is_staff:
+        return HttpResponseRedirect('/')
+
 
     return render_to_response('group/groups.html', {
+            'group':'Search group...',
             'joined_groups': joined_groups,
             }, context_instance=RequestContext(request))
-    
+
+
+@login_required
+def group_search(request):
+    """Search groups"""
+    group_found=[]
+    joined_groups = request.user.joined_groups
+    group_search = request.GET.get('group', '')
+
+    enabled_groups = get_wiki_enabled_group_list(
+        in_group_ids=[x.id for x in joined_groups])
+    enabled_group_ids = [ int(x.group_id) for x in enabled_groups ]
+
+    for group in joined_groups:
+        if group.id in enabled_group_ids:
+            group.wiki_enabled = True
+        else:
+            group.wiki_enabled = False
+
+        if group_search.lower() in group.props.group_name.lower() :
+            group_found.append(group)
+
+    # redirect user, is not staff
+    if not request.user.is_staff:
+        return HttpResponseRedirect('/')
+
+    return render_to_response('group/groups.html', {
+            'joined_groups': group_found,
+            'group': group_search,
+            }, context_instance=RequestContext(request))
+
+
 @login_required
 @sys_staff_required
 def group_remove(request, group_id):
@@ -236,7 +282,7 @@ def group_remove(request, group_id):
     """
     # Request header may missing HTTP_REFERER, we need to handle that case.
     next = request.META.get('HTTP_REFERER', SITE_ROOT)
-    
+
     try:
         group_id_int = int(group_id)
     except ValueError:
@@ -349,11 +395,11 @@ def group_transfer(request, group_id):
         messages.error(request, _('Email %s is not valid.') % email)
         next = reverse('group_manage', args=[group_id])
         return HttpResponseRedirect(next)
-        
+
     if email != username:
         if not is_group_user(group_id, email):
             ccnet_threaded_rpc.group_add_member(group_id, username, email)
-            
+
         ccnet_threaded_rpc.set_group_creator(group_id, email)
 
     next = reverse('group_list', args=[])
@@ -424,7 +470,7 @@ def group_quit(request, group_id):
                                                 request.user.username)
     except SearpcError, e:
         return render_error(request, _(e.msg))
-        
+
     return HttpResponseRedirect(reverse('group_list', args=[]))
 
 @login_required
@@ -461,7 +507,7 @@ def group_message_remove(request, group_id, msg_id):
 
 def msg_reply(request, msg_id):
     """Show group message replies, and process message reply in ajax"""
-    
+
     if not request.is_ajax():
         raise Http404
 
@@ -541,7 +587,7 @@ def msg_reply_new(request):
             if not group:
                 continue
             m.group_name = group.group_name
-            
+
             # get attachements
             attachments = m.messageattachment_set.all()
             for attachment in attachments:
@@ -568,7 +614,7 @@ def msg_reply_new(request):
 
     # remove new group msg reply notification
     UserNotification.objects.seen_group_msg_reply_notice(username)
-    
+
     return render_to_response("group/new_msg_reply.html", {
             'group_msgs': group_msgs,
             }, context_instance=RequestContext(request))
@@ -585,7 +631,7 @@ def group_info_for_pub(request, group):
             "mods_enabled": mods_enabled,
             "mods_available": mods_available,
             }, context_instance=RequestContext(request))
-    
+
 
 @group_check
 def group_info(request, group):
@@ -652,7 +698,7 @@ def group_members(request, group):
     # get available modules(wiki, etc)
     mods_available = get_available_mods_by_group(group.id)
     mods_enabled = get_enabled_mods_by_group(group.id)
-            
+
     return render_to_response("group/group_members.html", {
             "members": members,
             "group" : group,
@@ -671,6 +717,19 @@ def send_group_member_add_mail(request, group, from_user, to_user):
     subject = _(u'You are invited to join a group on %s') % SITE_NAME
     send_html_email(subject, 'group/add_member_email.html', c, None, [to_user])
 
+
+def send_user_add_mail(request, email, password):
+    """Send email when add new user."""
+    c = {
+        'user': request.user.username,
+        'org': request.user.org,
+        'email': email,
+        'password': password,
+        }
+    send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+            'sysadmin/user_add_email.html', c, None, [email])
+
+
 @login_required_ajax
 @group_staff_required
 def ajax_add_group_member(request, group_id):
@@ -681,17 +740,19 @@ def ajax_add_group_member(request, group_id):
 
     group = get_group(group_id)
     if not group:
-        result['error'] = _(u'The group does not exist.') 
+        result['error'] = _(u'The group does not exist.')
         return HttpResponse(json.dumps(result), status=400,
                         content_type=content_type)
 
     username = request.user.username
 
     member_name_str = request.POST.get('user_name', '')
+
+
     member_list = string2list(member_name_str)
     member_list = [x.lower() for x in member_list]
 
-    # Add users to contacts.        
+    # Add users to contacts.
     for email in member_list:
         if not is_valid_username(email):
             continue
@@ -730,7 +791,7 @@ def ajax_add_group_member(request, group_id):
                 result['error'] = _(u'You can only invite %d members.<a href="http://seafile.com/">Upgrade account.</a>') % group_members
                 return HttpResponse(json.dumps(result), status=403,
                                     content_type=content_type)
-                        
+
         # Can invite unregistered user to group.
         for email in member_list:
             if not is_valid_username(email):
@@ -759,16 +820,87 @@ def ajax_add_group_member(request, group_id):
         # Can only invite registered user to group if not in cloud mode.
         for email in member_list:
             if not is_valid_username(email):
-                continue
+                err_msg = _(u'Failed to add, %s is not correct email adress.')
+                result['error'] = err_msg % email
+                return HttpResponse(json.dumps(result), status=400,
+                                    content_type=content_type)
+                #continue
 
             if is_group_user(group.id, email):
                 continue
 
+
             if not is_registered_user(email):
-                err_msg = _(u'Failed to add, %s is not registerd.')
-                result['error'] = err_msg % email
-                return HttpResponse(json.dumps(result), status=400,
+                if request.POST.get('new_member', ''):
+                    #add new member and add to this group
+                    email=request.POST.get('email', '')
+                    password=request.POST.get('pwd', '')
+
+                    name=request.POST.get('name', '')
+                    company_name=request.POST.get('company_name', '')
+
+                    #departement=request.POST.get('departement', '')
+                    #telephone=request.POST.get('telephone', '')
+
+                    #add user
+                    user = User.objects.create_user(email, password, is_staff=False,
+                                        is_active=True)
+
+                    #add profile
+                    Profile.objects.add_or_update(email, name, company_name)
+
+                    #add detailed profile(not use)
+                    #DetailedProfile.objects.add_detailed_profile(email,departement,telephone)
+
+                    #add to group
+                    try:
+                        ccnet_threaded_rpc.group_add_member(group.id,
+                                                    username, email)
+                    except SearpcError, e:
+                        result['error'] = _(e.msg)
+                        return HttpResponse(json.dumps(result), status=500,
                                     content_type=content_type)
+
+
+                    #send mail
+                    if request.user.org:
+                        org_id = request.user.org.org_id
+                        url_prefix = request.user.org.url_prefix
+                        ccnet_threaded_rpc.add_org_user(org_id, email, 0)
+                        if IS_EMAIL_CONFIGURED:
+                            try:
+                                send_user_add_mail(request, email, password)
+                                messages.success(request, _(u'Successfully added user %s. An email notification has been sent.') % email)
+                            except Exception, e:
+                                logger.error(str(e))
+                                messages.success(request, _(u'Successfully added user %s. An error accurs when sending email notification, please check your email configuration.') % email)
+                        else:
+                            messages.success(request, _(u'Successfully added user %s.') % email)
+
+                        return HttpResponse(json.dumps({'success': True}), content_type=content_type)
+                    else:
+                        if IS_EMAIL_CONFIGURED:
+                            if SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER:
+                                try:
+                                    send_user_add_mail(request, email, password)
+                                    messages.success(request, _(u'Successfully added user %s. An email notification has been sent.') % email)
+                                except Exception, e:
+                                    logger.error(str(e))
+                                    messages.success(request, _(u'Successfully added user %s. An error accurs when sending email notification, please check your email configuration.') % email)
+                            else:
+                                messages.success(request, _(u'Successfully added user %s.') % email)
+                        else:
+                            messages.success(request, _(u'Successfully added user %s. But email notification can not be sent, because Email service is not properly configured.') % email)
+
+                        return HttpResponse(json.dumps({'success': True}), content_type=content_type)
+
+                else:
+                    err_msg = _(u'Failed to add, %s is not registerd.')
+                    result['error'] = err_msg % email
+                    return HttpResponse(json.dumps(result), status=400,
+                                        content_type=content_type)
+
+
             # Add user to group.
             try:
                 ccnet_threaded_rpc.group_add_member(group.id,
@@ -790,7 +922,7 @@ def ajax_add_group_member(request, group_id):
         messages.success(request, _(u'Successfully added.'))
     return HttpResponse(json.dumps('success'), status=200,
                         content_type=content_type)
-    
+
 @login_required
 @group_staff_required
 def group_manage(request, group_id):
@@ -837,13 +969,13 @@ def group_add_admin(request, group_id):
     Add group admin.
     """
     group_id = int(group_id)    # Checked by URL Conf
-    
+
     if request.method != 'POST':
         raise Http404
 
     result = {}
     content_type = 'application/json; charset=utf-8'
-        
+
     member_name_str = request.POST.get('user_name', '')
     member_list = string2list(member_name_str)
     member_list = [x.lower() for x in member_list]
@@ -854,7 +986,7 @@ def group_add_admin(request, group_id):
             result['error'] = err_msg
             return HttpResponse(json.dumps(result), status=400,
                                 content_type=content_type)
-        
+
         # Add user to contacts.
         mail_sended.send(sender=None, user=request.user.username,
                          email=member_name)
@@ -882,7 +1014,7 @@ def group_add_admin(request, group_id):
                     result['error'] = _(u'You can only invite %d members.<a href="http://seafile.com/">Upgrade account.</a>') % group_members
                     return HttpResponse(json.dumps(result), status=500,
                                         content_type=content_type)
-            
+
             try:
                 ccnet_threaded_rpc.group_add_member(group_id,
                                                     request.user.username,
@@ -906,14 +1038,14 @@ def group_remove_admin(request, group_id):
     if not is_valid_username(user):
         messages.error(request, _(u'%s is not a valid email.') % user)
         return HttpResponseRedirect(reverse('group_manage', args=[group_id]))
-        
+
     try:
         ccnet_threaded_rpc.group_unset_admin(int(group_id), user)
         messages.success(request, _(u'Operation succeeded.'))
     except SearpcError, e:
         messages.error(request, _(e.msg))
     return HttpResponseRedirect(reverse('group_manage', args=[group_id]))
-    
+
 @login_required
 def group_member_operations(request, group_id, user_name):
     if request.GET.get('op','') == 'delete':
@@ -1019,7 +1151,7 @@ def group_recommend(request):
         else:
             result['error'] = str(form.errors)
             return HttpResponse(json.dumps(result), status=400, content_type=content_type)
-    
+
     # request.method == 'GET'
     else:
         repo_id = request.GET.get('repo_id')
@@ -1031,7 +1163,7 @@ def group_recommend(request):
         if path is None:
             result['error'] = _(u'Error: no path.')
             return HttpResponse(json.dumps(result), status=400, content_type=content_type)
-    
+
     # get discussions & replies
     path_hash = calc_file_path_hash(path)
     discussions = FileDiscuss.objects.filter(path_hash=path_hash, repo_id=repo_id)
@@ -1089,7 +1221,7 @@ def create_group_repo(request, group_id):
     encrypted_file_key = form.cleaned_data['encrypted_file_key']
 
     if is_org_context(request):
-        org_id = request.user.org.org_id        
+        org_id = request.user.org.org_id
         try:
             if encryption:
                 repo_id = seafile_api.create_org_enc_repo(
@@ -1132,7 +1264,7 @@ def create_group_repo(request, group_id):
         else:
             return HttpResponse(json.dumps({'success': True}),
                                 content_type=content_type)
-                
+
 @login_required_ajax
 def group_joinrequest(request, group_id):
     """
@@ -1144,7 +1276,7 @@ def group_joinrequest(request, group_id):
     result = {}
     content_type = 'application/json; charset=utf-8'
 
-    group = get_group(int(group_id)) 
+    group = get_group(int(group_id))
     if not group:
         raise Http404
 
@@ -1158,8 +1290,8 @@ def group_joinrequest(request, group_id):
         form = GroupJoinMsgForm(request.POST)
         if form.is_valid():
             members_all = ccnet_threaded_rpc.get_group_members(group.id)
-            staffs = [ m.user_name for m in members_all if m.is_staff ]    
-            
+            staffs = [ m.user_name for m in members_all if m.is_staff ]
+
             join_request_msg = form.cleaned_data['group_join_msg']
 
             group_join_request.send(sender=None, staffs=staffs,
@@ -1173,7 +1305,7 @@ def group_joinrequest(request, group_id):
             return HttpResponseBadRequest(json.dumps(form.errors),
                                           content_type=content_type)
 
-@login_required_ajax        
+@login_required_ajax
 def attention(request):
     """
     Handle ajax request to query group members used in autocomplete.
@@ -1200,10 +1332,10 @@ def attention(request):
     for m in members:
         if len(result) == 10:   # Return at most 10 results.
             break
-        
+
         if m.user_name == user:
             continue
-        
+
         if m.user_name in member_names:
             # Remove duplicated member names
             continue
@@ -1217,7 +1349,7 @@ def attention(request):
             result.append({'contact_name': nickname})
 
     content_type = 'application/json; charset=utf-8'
-    
+
     return HttpResponse(json.dumps(result), content_type=content_type)
 
 @group_check
@@ -1275,13 +1407,13 @@ def group_add_discussion(request, group):
 def group_discuss(request, group):
     username = request.user.username
     form = MessageForm()
-        
+
     # remove user notifications
     UserNotification.objects.seen_group_msg_notices(username, group.id)
-    
+
     # Get all group members.
     members = get_group_members(group.id)
-        
+
     """group messages"""
     # Show 15 group messages per page.
     paginator = Paginator(GroupMessage.objects.filter(
@@ -1301,14 +1433,14 @@ def group_discuss(request, group):
 
     group_msgs.page_range = paginator.get_page_range(group_msgs.number)
 
-    # Force evaluate queryset to fix some database error for mysql.        
-    group_msgs.object_list = list(group_msgs.object_list) 
+    # Force evaluate queryset to fix some database error for mysql.
+    group_msgs.object_list = list(group_msgs.object_list)
 
     msg_attachments = MessageAttachment.objects.filter(group_message__in=group_msgs.object_list)
 
     msg_replies = MessageReply.objects.filter(reply_to__in=group_msgs.object_list)
     reply_to_list = [ r.reply_to_id for r in msg_replies ]
-    
+
     for msg in group_msgs.object_list:
         msg.reply_cnt = reply_to_list.count(msg.id)
         msg.replies = []
@@ -1316,7 +1448,7 @@ def group_discuss(request, group):
             if msg.id == r.reply_to_id:
                 msg.replies.append(r)
         msg.replies = msg.replies[-3:]
-           
+
         msg.attachments = []
         for att in msg_attachments:
             if att.group_message_id != msg.id:
@@ -1353,7 +1485,7 @@ def group_discuss(request, group):
     # get available modules(wiki, etc)
     mods_available = get_available_mods_by_group(group.id)
     mods_enabled = get_enabled_mods_by_group(group.id)
-            
+
     return render_to_response("group/group_discuss.html", {
             "group" : group,
             "is_staff": group.is_staff,
@@ -1373,7 +1505,7 @@ def group_toggle_modules(request, group):
 
     referer = request.META.get('HTTP_REFERER', None)
     next = SITE_ROOT if referer is None else referer
-    
+
     username = request.user.username
     group_wiki = request.POST.get('group_wiki', 'off')
     if group_wiki == 'on':
@@ -1387,16 +1519,16 @@ def group_toggle_modules(request, group):
 
     return HttpResponseRedirect(next)
 
-    
+
 ########## wiki
 @group_check
 def group_wiki(request, group, page_name="home"):
     username = request.user.username
-    
+
     # get available modules(wiki, etc)
     mods_available = get_available_mods_by_group(group.id)
     mods_enabled = get_enabled_mods_by_group(group.id)
-    
+
     wiki_exists = True
     try:
         content, repo, dirent = get_group_wiki_page(username, group, page_name)
@@ -1419,7 +1551,7 @@ def group_wiki(request, group, page_name="home"):
 
         repo = get_group_wiki_repo(group, username)
         # No need to check whether repo is none, since repo is already created
-        
+
         filename = clean_page_name(page_name) + '.md'
         if not post_empty_file(repo.id, "/", filename, username):
             return render_error(request, _("Failed to create wiki page. Please retry later."))
@@ -1427,7 +1559,7 @@ def group_wiki(request, group, page_name="home"):
     else:
         url_prefix = reverse('group_wiki', args=[group.id])
         content = convert_wiki_link(content, url_prefix, repo.id, username)
-        
+
         # fetch file modified time and modifier
         path = '/' + dirent.obj_name
         try:
@@ -1485,7 +1617,7 @@ def group_wiki_pages(request, group):
     repo_perm = seafile_api.check_repo_access_permission(repo.id, username)
     mods_available = get_available_mods_by_group(group.id)
     mods_enabled = get_enabled_mods_by_group(group.id)
-    
+
     return render_to_response("group/group_wiki_pages.html", {
             "group": group,
             "pages": pages,
@@ -1513,7 +1645,7 @@ def group_wiki_create(request, group):
         result = {'error': err_msg}
         return HttpResponse(json.dumps(result), status=status,
                             content_type=content_type)
-    
+
     form = WikiCreateForm(request.POST)
     if not form.is_valid():
         return json_error(str(form.errors.values()[0]))
@@ -1630,7 +1762,7 @@ def group_wiki_page_delete(request, group, page_name):
         repo = get_group_wiki_repo(group, request.user.username)
     except WikiDoesNotExist:
         return render_error(request, _('Wiki is not found.'))
-    
+
     file_name = page_name + '.md'
     user = request.user.username
     if del_file(repo.id, '/', file_name, user):
@@ -1639,4 +1771,4 @@ def group_wiki_page_delete(request, group, page_name):
         messages.error(request, _('Failed to delete "%s". Please retry later.') % page_name)
 
     return HttpResponseRedirect(reverse('group_wiki', args=[group.id]))
-    
+
