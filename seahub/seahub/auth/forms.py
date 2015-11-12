@@ -12,7 +12,7 @@ from seahub.utils import IS_EMAIL_CONFIGURED, send_html_email, \
 from captcha.fields import CaptchaField
 
 from seahub.settings import USER_STRONG_PASSWORD_REQUIRED, \
-    USER_PASSWORD_STRENGTH_LEVEL, USER_PASSWORD_MIN_LENGTH
+    USER_PASSWORD_STRENGTH_LEVEL, USER_PASSWORD_MIN_LENGTH,CONTACT_NAME_BODY_EMAIL,OFFICE_NAME_OBJET_EMAIL
 
 class AuthenticationForm(forms.Form):
     """
@@ -109,9 +109,10 @@ class PasswordResetForm(forms.Form):
             'uid': int_to_base36(user.id),
             'user': user,
             'token': token_generator.make_token(user),
+            'contact_name' : '%s' % CONTACT_NAME_BODY_EMAIL,
         }
 
-        send_html_email(_("Reset Password on %s") % site_name,
+        send_html_email(_("%s - Collaborative Space: Resetting your password") % OFFICE_NAME_OBJET_EMAIL,
                   email_template_name, c, None, [user.username])
 
 class SetPasswordForm(forms.Form):

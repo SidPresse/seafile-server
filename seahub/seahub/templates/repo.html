@@ -342,6 +342,8 @@ $(function() {
         .bind('fileuploadsubmit', function(e, data) {
             var _this = $(this);
             var file = data.files[0];
+
+
             // get url(token) for every file
             if (!file.error) {
                 $.ajax({
@@ -362,6 +364,19 @@ $(function() {
 
                         data.url = ret['url'];
                         data.jqXHR = _this.fileupload('send', data);
+
+                        $.ajax({
+                            url: '{% url 'get_file_op_url_notify' repo.id %}?op_type=upload&lepath='+ cur_path+ '&lepfile='+file.name,
+                            cache: false,
+                            dataType: 'json',
+                            error: function() {
+                                file.error = "{% trans "failed to send notification" %}";
+                            }
+                        });
+
+
+
+
                     },
                     error: function() {
                         file.error = "{% trans "Failed to get upload url" %}";
@@ -1223,7 +1238,7 @@ $('#upload-file').click(function () {
 
         $.modal.close();
         $.ajax({
-            url: '{% url 'get_file_op_url' repo.id %}?op_type=' + e('upload-blks'),
+            url: '{% url 'get_file_op_url' repo.id %}?op_type=' + e('upload-blks') ,
             cache: false,
             dataType: 'json',
             success: function(data) {

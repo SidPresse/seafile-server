@@ -1,0 +1,29 @@
+#header {
+	background: #53A0D7;
+}
+#header .nav .a.cur {
+	color: #FFF;
+}
+#header .nav .a, #header .nav .a:visited {
+	color: #FFF;
+}
+
+.side-tabnav-tabs .tab-cur a, .side-tabnav-tabs .tab-cur a:hover {
+	background-color: #53A0D7;
+}
+.side-tabnav h3.hd, .side-tabnav .hd h3, tabnav .hd h3 {
+	color: #53A0D7;
+}
+.tabnav-tab-cur a, .tabnav-tab a:hover, .wiki-nav .cur-item .link, .wiki-nav .link:hover, #right-panel .hd .ui-state-active .a, #right-panel .hd .a:hover {
+	color: #53A0D7;
+	border-bottom-color: #53A0D7;
+}
+a, a:hover {
+	color: #53A0D7;
+}
+.side-tabnav-tabs .tab a:hover {
+	background-color: #A9B8C0;
+}
+.new-narrow-panel .hd {
+	background: #53A0D7;
+}

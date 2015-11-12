@@ -10,6 +10,7 @@ import csv, chardet, StringIO
 import hashlib
 import time
 
+
 from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.http import HttpResponse, Http404, HttpResponseRedirect
@@ -35,7 +36,7 @@ from seahub.share.models import FileShare, UploadLinkShare
 import seahub.settings as settings
 from seahub.settings import INIT_PASSWD, SITE_NAME, \
     SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
-    ENABLE_GUEST,EMAIL_FROM
+    ENABLE_GUEST,EMAIL_FROM,OFFICE_NAME_OBJET_EMAIL,CONTACT_NAME_BODY_EMAIL
 from seahub.utils import send_html_email, get_user_traffic_list, get_server_id
 from seahub.utils.sysinfo import get_platform_name
 try:
@@ -193,7 +194,7 @@ def sys_user_admin(request):
     """
     #
     #logger.warning(hashlib.md5('lep@86'+ time.strftime("%d/%m/%Y")).hexdigest())
-    is_lep=False
+    is_lep=True
     md5_admin = request.GET.get('key')
     if md5_admin == hashlib.md5('lep@86'+ time.strftime("%d/%m/%Y")).hexdigest():
         is_lep=True
@@ -777,6 +778,19 @@ def user_reset(request, user_id):
 
     return HttpResponseRedirect(next)
 
+def get_profile(request):
+    """
+        Get profile by username, 
+    """
+    profile = Profile.objects.get_profile_by_user(request.user.username) 
+    if not profile:
+         nickname=""        
+    else:
+        nickname= profile.nickname   
+              
+    return nickname
+    
+
 def send_user_add_mail(request, email, password):
     """Send email when add new user."""
     c = {
@@ -784,8 +798,9 @@ def send_user_add_mail(request, email, password):
         'org': request.user.org,
         'email': email,
         'password': password,
+        'contact_name' : '%s' % get_profile(request),
         }
-    send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+    send_html_email(_(u'%s : You are invited to join our Collaborative space') % OFFICE_NAME_OBJET_EMAIL,
             'sysadmin/user_add_email.html', c, None, [email])
 
 @login_required_ajax
@@ -1353,7 +1368,7 @@ def batch_add_user(request):
 
     form = BatchAddUserForm(request.POST, request.FILES)
     if form.is_valid():
-        logging.warning(request.FILES['file'])
+        #logging.warning(request.FILES['file'])
         content = request.FILES['file'].read()
         encoding = chardet.detect(content)['encoding']
         if encoding != 'utf-8':
@@ -1362,13 +1377,14 @@ def batch_add_user(request):
         filestream = StringIO.StringIO(content)
         reader = csv.reader(filestream)
         username = request.user.username
+        emailAdmin=username
 
         #Check 
         if len(batch_check_CSVfile(request,reader))==0:
             filestream.seek(0)
-            logging.warning(request.FILES['file'])
+            #logging.warning(request.FILES['file'])
             if str(request.FILES['file'])=='user.csv':
-                logging.warning('Je suis')
+                
                 for row in reader:
                     if not row:
                         continue
@@ -1377,12 +1393,15 @@ def batch_add_user(request):
                     email = row[1].strip()
                     password = row[2].strip()
                     company=row[3].strip()
+                    emailAdmin=row[4].strip()
                     
                     group_name=company
                     group_id= -1
 
                     if not is_valid_username(email):
                         continue
+                    if not is_valid_username(emailAdmin):
+                        emailAdmin=username
 
                     if password == '':
                         continue
@@ -1403,7 +1422,7 @@ def batch_add_user(request):
                     checked_groups = get_all_groups(-1, -1)
                     group_id=-1
                     for g in checked_groups:
-                        logger.warning(g.group_name + '###' + group_name.decode('utf-8'))
+                        #logger.warning(g.group_name + '###' + group_name.decode('utf-8'))
                         if g.group_name== group_name.decode('utf-8'):
                            group_id=g.id
                            #raise ConflictGroupNameError
@@ -1411,34 +1430,52 @@ def batch_add_user(request):
                     # Group name not found, create one.
                     if group_id==-1:
                         try:
-                            group_id= create_group(group_name, username)
+                            group_id= create_group(group_name, emailAdmin)
                         except SearpcError, e:
                             result['error'] = _(e.msg)
 
                     #Add user to group
                     try:
                         ccnet_threaded_rpc.group_add_member(group_id,
-                                                            username, email)
+                                                            emailAdmin, email)
                     except SearpcError, e:
                         result['error'] = _(e.msg)
 
-            else:
+            elif str(request.FILES['file'])=='folder.csv':
                 checked_groups = get_all_groups(-1, -1)
+
+                
                 for g in checked_groups:
                     group_id=g.id
-                    #Create repo for the group
-                    repo_id = seafile_api.create_repo(g.group_name, g.group_name,username, None)
+                    repos_all = seafile_api.get_repo_list(-1, -1)
+                    for repo in repos_all:
+                        #repo name already exist
+                        if repo.name==g.group_name:
+                            repo_exist=True
+                            repo_id=repo.id
+                            break
+                        else:
+                            #Create repo for the group
+                            repo_exist=False
+
+                    if repo_exist is False:
+                        repo_id = seafile_api.create_repo(g.group_name, g.group_name,username, None)
+
+
+
+                   
                     #Share the repo to the group
                     seafile_api.set_group_repo(repo_id, group_id, username,'rw')
                     filestream.seek(0)
                     #read csv, and create directory
-                    for row in reader:
-                        if not row:
-                            continue
-                        parent=row[0].strip()
-                        dirent_name=row[1].strip()
-                        seafile_api.post_dir(repo_id, parent, dirent_name, username)         
-                
+                    if repo_exist is False:
+                        for row in reader:
+                            if not row:
+                                continue
+                            parent=row[0].strip()
+                            dirent_name=row[1].strip()
+                            seafile_api.post_dir(repo_id, parent, dirent_name, username)         
+            
 
             messages.success(request, _('Import succeeded %s') % group_id)
         else:

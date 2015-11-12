@@ -1,0 +1,26 @@
+{% extends 'email_base.html' %} {% load i18n %} {% block email_con %} {% autoescape off %}
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% trans "Hi," %}
+</p>
+
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% if s_type %}
+{% blocktrans %}We share with you the file in your cloud collaboration.{% endblocktrans%}
+{%else%}
+{% blocktrans %}We share with you the folder {{ folder }} in your cloud collaboration.{% endblocktrans%}
+{%endif%}
+</p>
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+	{% blocktrans %}To visit, go into your sharing cloud collaboration :{% endblocktrans%}
+	{% if s_type %}
+     <a href="{{ url_base }}/s/{{s_type}}/{{path}}/" target="_blank">{% trans "Log In" %}</a> 
+	{%else%}
+	<a href="{{ url_base }}/repo/{{repo_id}}/" target="_blank">{% trans "Log In" %}</a> 
+    {%endif%}
+
+</p>
+
+{% if extra_msg %}
+
+" {{ extra_msg }} "
+{% endif %} {% endautoescape %} {% endblock %} 

@@ -1,24 +1,19 @@
-{% extends 'email_base.html' %}
-
-{% load i18n %}
-
-{% block email_con %}
-{% autoescape off %}
-
-<p style="color:#121214;font-size:14px;">{% trans "Hi," %}</p>
-
-<p style="font-size:14px;color:#434144;">
-{% blocktrans %}{{ email }} shared an upload link to you on {{ site_name }}.{% endblocktrans%}
+{% extends 'email_base.html' %} {% load i18n %} {% block email_con %} {% autoescape off %}
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% trans "Hi," %}
 </p>
 
-<p style="font-size:14px;color:#434144;">
-{% trans "You can go to the following page and upload your files:" %}<br />
-{{ shared_upload_link }}
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% blocktrans %}We just share with you a submit link in your space sharing and collaboration.{% endblocktrans%}
 </p>
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+	{% blocktrans %}We invite you to drop off your files by clicking the link below :{% endblocktrans%}
+	<a href="{{ shared_upload_link }}">{% trans "Log In" %}</a>
+	
+</p>
+
 
 {% if extra_msg %}
-<p>" {{ extra_msg }} "</p>
-{% endif %}
 
-{% endautoescape %}
-{% endblock %}
+" {{ extra_msg }} "
+{% endif %} {% endautoescape %} {% endblock %} 

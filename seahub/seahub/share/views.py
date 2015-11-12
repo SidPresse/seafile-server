@@ -27,6 +27,7 @@ from seahub.share.forms import RepoShareForm, FileLinkShareForm, \
 from seahub.share.models import FileShare, PrivateFileDirShare, \
     UploadLinkShare, OrgFileShare
 from seahub.share.signals import share_repo_to_user_successful
+from seahub.profile.models import Profile, DetailedProfile
 # from settings import ANONYMOUS_SHARE_COOKIE_TIMEOUT
 # from tokens import anon_share_token_generator
 from seahub.auth.decorators import login_required, login_required_ajax
@@ -43,7 +44,7 @@ from seahub.utils import render_permission_error, string2list, render_error, \
     normalize_file_path, normalize_dir_path
 from seahub.settings import SITE_ROOT, REPLACE_FROM_EMAIL, ADD_REPLY_TO_HEADER,\
     SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
-    ENABLE_SUB_LIBRARY, ENABLE_REPO_HISTORY_SETTING, REPO_PASSWORD_MIN_LENGTH
+    ENABLE_SUB_LIBRARY, ENABLE_REPO_HISTORY_SETTING, REPO_PASSWORD_MIN_LENGTH,CONTACT_NAME_BODY_EMAIL,OFFICE_NAME_OBJET_EMAIL,EMAIL_FROM
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -129,6 +130,23 @@ def share_to_group(request, repo, group, permission):
         msg = _(u'Shared to %(group)s successfully, go check it at <a href="%(share)s">Shares</a>.') % \
             {'group': group_name, 'share': reverse('share_admin')}
         messages.success(request, msg)
+        #Send to user
+         
+        for member in seaserv.get_group_members(group.id):
+            c = {
+            'user': '%s' % EMAIL_FROM,
+            'org': request.user.org,
+            'email': member.user_name,
+            'repo_id' : repo_id,
+            'contact_name' : '%s' % get_profile(request) ,
+            'office_name' : '%s' % OFFICE_NAME_OBJET_EMAIL,
+            'path' : "%s" % reverse('share_admin'),
+            'folder' : '%s' % repo.name,
+            }
+            #logger.warning("testa" + member.user_name)
+            send_html_email(_(u' %s - Cloud collaboration : folder shared with you') % OFFICE_NAME_OBJET_EMAIL,'shared_folder_file_email.html', c, None, [member.user_name])
+
+
 
 def share_to_user(request, repo, to_user, permission):
     """Share repo to a user with given permission.
@@ -205,6 +223,18 @@ def check_user_share_quota(username, repo, users=[], groups=[]):
 
     return check_pass
 
+def get_profile(request):
+    """
+        Get profile by username, 
+    """
+    profile = Profile.objects.get_profile_by_user(request.user.username) 
+    if not profile:
+        nickname=""            
+    else:
+        nickname= profile.nickname  
+              
+    return nickname
+
 ########## views
 @login_required
 @require_POST
@@ -229,6 +259,9 @@ def share_repo(request):
     repo = seafile_api.get_repo(repo_id)
     if not repo:
         raise Http404
+
+
+ 
 
     # Test whether user is the repo owner.
     username = request.user.username
@@ -259,16 +292,32 @@ def share_repo(request):
 
     if not check_user_share_quota(username, repo, users=share_to_users,
                                   groups=share_to_groups):
-        messages.error(request, _('Failed to share "%s", no enough quota. <a href="http://seafile.com/">Upgrade account.</a>') % repo.name)
+        messages.error(request, _('Failed to share "%s", no enough quota.') % repo.name)
         return HttpResponseRedirect(next)
 
     for group in share_to_groups:
         share_to_group(request, repo, group, permission)
 
+   
+
     for email in share_to_users:
         # Add email to contacts.
         mail_sended.send(sender=None, user=request.user.username, email=email)
         share_to_user(request, repo, email, permission)
+        
+        c = {
+            'user': '%s' % EMAIL_FROM,
+            'org': request.user.org,
+            'email': email,
+            'repo_id' : repo_id,
+            'contact_name' : '%s' % get_profile(request),
+            'office_name' : '%s' % OFFICE_NAME_OBJET_EMAIL,
+            'folder' : '%s' % repo.name,
+        }
+
+        send_html_email(_(u' %s - Cloud collaboration : folder shared with you') % OFFICE_NAME_OBJET_EMAIL,
+            'shared_folder_file_email.html', c, None, [email])
+
 
     return HttpResponseRedirect(next)
 
@@ -895,16 +944,19 @@ def send_shared_link(request):
         extra_msg = escape(form.cleaned_data['extra_msg'])
 
         to_email_list = string2list(email)
+       
         for to_email in to_email_list:
             # Add email to contacts.
             mail_sended.send(sender=None, user=request.user.username,
-                             email=to_email)
+                                email=to_email)
 
             c = {
                 'email': '%s' % EMAIL_FROM,
                 'to_email': to_email,
                 'file_shared_link': file_shared_link,
                 'file_shared_name': file_shared_name,
+                'contact_name' : '%s' % get_profile(request),
+                
             }
 
             if extra_msg:
@@ -923,14 +975,14 @@ def send_shared_link(request):
             try:
                 if file_shared_type == 'f':
                     c['file_shared_type'] = _(u"file")
-                    send_html_email(_(u'A file is shared to you on %s') % SITE_NAME,
+                    send_html_email(_(u'%s - Cloud Collaboratiion : A download link has been shared with you') % OFFICE_NAME_OBJET_EMAIL,
                                     'shared_link_email.html',
                                     c, from_email, [to_email],
                                     reply_to=reply_to
                                     )
                 else:
                     c['file_shared_type'] = _(u"directory")
-                    send_html_email(_(u'A directory is shared to you on %s') % SITE_NAME,
+                    send_html_email(_(u'%s - Cloud Collaboratiion : A download link has been shared with you') % OFFICE_NAME_OBJET_EMAIL,
                                     'shared_link_email.html',
                                     c, from_email, [to_email],
                                     reply_to=reply_to)
@@ -991,27 +1043,43 @@ def gen_private_file_share(request, repo_id):
     perm = request.POST.get('perm', 'r')
     file_or_dir = os.path.basename(path.rstrip('/'))
     username = request.user.username
-
+    
     for email in [e.strip() for e in emails if e.strip()]:
         if not is_valid_username(email):
             continue
-
+       
         if not is_registered_user(email):
             messages.error(request, _('Failed to share to "%s", user not found.') % email)
             continue
-
+        
         if s_type == 'f':
-            pfds = PrivateFileDirShare.objects.add_read_only_priv_file_share(
-                username, email, repo_id, path)
+            pfds = PrivateFileDirShare.objects.add_read_only_priv_file_share(username, email, repo_id, path)
+            
         elif s_type == 'd':
-            pfds = PrivateFileDirShare.objects.add_private_dir_share(
-                username, email, repo_id, path, perm)
+            pfds = PrivateFileDirShare.objects.add_private_dir_share(username, email, repo_id, path, perm)
+           
         else:
             continue
-
+         
         # send a signal when sharing file successful
         share_file_to_user_successful.send(sender=None, priv_share_obj=pfds)
         messages.success(request, _('Successfully shared %s.') % file_or_dir)
+        c = {
+            'user': '%s' % EMAIL_FROM,
+            'org': request.user.org,
+            'email': email,
+            'repo_id' : '%s' % pfds,
+            'contact_name' : '%s' % get_profile(request),
+            'office_name' : '%s' % OFFICE_NAME_OBJET_EMAIL,
+            'path' : '%s' % pfds.token,
+            's_type' : '%s' % pfds.s_type,
+
+            }
+      
+        #logger.warning(vars(pfds))
+        send_html_email(_(u' %s - Cloud Collaboration : A private file sent to you') % OFFICE_NAME_OBJET_EMAIL,'shared_folder_file_email.html', c, None, [email])
+
+
 
     next = request.META.get('HTTP_REFERER', None)
     if not next:
@@ -1192,7 +1260,6 @@ def send_shared_upload_link(request):
         email = form.cleaned_data['email']
         shared_upload_link = form.cleaned_data['shared_upload_link']
         extra_msg = escape(form.cleaned_data['extra_msg'])
-
         to_email_list = string2list(email)
         for to_email in to_email_list:
             # Add email to contacts.
@@ -1203,6 +1270,8 @@ def send_shared_upload_link(request):
                 'email': request.user.username,
                 'to_email': to_email,
                 'shared_upload_link': shared_upload_link,
+                'contact_name' : '%s' % get_profile(request),
+                'share_link' : '1',
                 }
 
             if extra_msg:
@@ -1219,7 +1288,7 @@ def send_shared_upload_link(request):
                 reply_to = None
 
             try:
-                send_html_email(_(u'An upload link is shared to you on %s') % SITE_NAME,
+                send_html_email(_(u'%s - Collaborative Space: A Send link has been shared with you ') % OFFICE_NAME_OBJET_EMAIL,
                                 'shared_upload_link_email.html',
                                 c, from_email, [to_email],
                                 reply_to=reply_to)
@@ -1233,3 +1302,20 @@ def send_shared_upload_link(request):
     else:
         return HttpResponseBadRequest(json.dumps(form.errors),
                                       content_type=content_type)
+
+
+
+def send_user_private_mail(request, email, repo_id):
+    """Send email when share file."""
+    
+    c = {
+        'user': '%s' % EMAIL_FROM,
+        'org': request.user.org,
+        'email': email,
+        'repo_id' : repo_id,
+        'contact_name' : '%s' % get_profile(request),
+        }
+    #send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+    #        'share/user_share_file_email.html', c, None, [email])
+    send_html_email(_(u' %s - Collaborative Space: A file was added') % OFFICE_NAME_OBJET_EMAIL,
+            'shared_private_email.html', c, None, [email])

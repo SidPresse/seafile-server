@@ -62,7 +62,7 @@ from seahub.base.accounts import User
 from seahub.profile.models import Profile, DetailedProfile
 from seahub.settings import INIT_PASSWD, SITE_NAME, \
     SEND_EMAIL_ON_ADDING_SYSTEM_MEMBER, SEND_EMAIL_ON_RESETTING_USER_PASSWD, \
-    ENABLE_GUEST
+    ENABLE_GUEST,OFFICE_NAME_OBJET_EMAIL,CONTACT_NAME_BODY_EMAIL
 
 from seahub.profile.forms import  ProfileForm
 
@@ -718,6 +718,21 @@ def send_group_member_add_mail(request, group, from_user, to_user):
     send_html_email(subject, 'group/add_member_email.html', c, None, [to_user])
 
 
+
+
+def get_profile(request):
+    """
+        Get profile by username, 
+    """
+    profile = Profile.objects.get_profile_by_user(request.user.username) 
+    if not profile:
+        nickname=""            
+    else:
+        nickname= profile.nickname  
+              
+    return nickname
+
+
 def send_user_add_mail(request, email, password):
     """Send email when add new user."""
     c = {
@@ -725,8 +740,9 @@ def send_user_add_mail(request, email, password):
         'org': request.user.org,
         'email': email,
         'password': password,
+        'contact_name' : '%s' % get_profile(request),
         }
-    send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+    send_html_email(_(u'%s : You are invited to join our Collaborative space') % OFFICE_NAME_OBJET_EMAIL,
             'sysadmin/user_add_email.html', c, None, [email])
 
 

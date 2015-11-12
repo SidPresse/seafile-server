@@ -37,16 +37,17 @@ from seahub.views.repo import get_nav_path, get_fileshare, get_dir_share_link, \
     get_uploadlink, get_dir_shared_upload_link
 import seahub.settings as settings
 from seahub.settings import ENABLE_THUMBNAIL, THUMBNAIL_ROOT, \
-    THUMBNAIL_DEFAULT_SIZE
+    THUMBNAIL_DEFAULT_SIZE,SITE_NAME,EMAIL_FROM,OFFICE_NAME_OBJET_EMAIL,CONTACT_NAME_BODY_EMAIL
 from seahub.utils import check_filename_with_rename, EMPTY_SHA1, \
     gen_block_get_url, TRAFFIC_STATS_ENABLED, get_user_traffic_stat,\
     new_merge_with_no_conflict, get_commit_before_new_merge, \
     get_repo_last_modify, gen_file_upload_url, is_org_context, \
-    get_org_user_events, get_user_events, get_file_type_and_ext
+    get_org_user_events, get_user_events, get_file_type_and_ext, send_html_email
 from seahub.utils.star import star_file, unstar_file
 from seahub.base.accounts import User
 from seahub.utils.file_types import IMAGE
 from seahub.thumbnail.utils import get_thumbnail_src
+from seahub.profile.models import Profile, DetailedProfile
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -449,7 +450,7 @@ def new_dir(repo_id, parent_dir, dirent_name, username):
     content_type = 'application/json; charset=utf-8'
 
     # create new dirent
-    logger.warning(repo_id + '##' + parent_dir + '##' + dirent_name + '##' + username)
+    #logger.warning(repo_id + '##' + parent_dir + '##' + dirent_name + '##' + username)
     try:
         seafile_api.post_dir(repo_id, parent_dir, dirent_name, username)
     except SearpcError, e:
@@ -1600,6 +1601,7 @@ def get_file_op_url(request, repo_id):
     content_type = 'application/json; charset=utf-8'
 
     op_type = request.GET.get('op_type') # value can be 'upload', 'update', 'upload-blks', 'update-blks'
+
     if not op_type:
         err_msg = _(u'Argument missing')
         return HttpResponse(json.dumps({"error": err_msg}), status=400,
@@ -1612,7 +1614,40 @@ def get_file_op_url(request, repo_id):
                                                         op_type, username)
         url = gen_file_upload_url(token, op_type + '-aj')
     
-    return HttpResponse(json.dumps({"url": url}), content_type=content_type)
+    return HttpResponse(json.dumps({"url": url}), content_type=content_type) 
+
+
+@login_required_ajax
+def get_file_op_url_notify(request, repo_id):
+    """Get file upload/update url for AJAX.
+    """
+    content_type = 'application/json; charset=utf-8'
+
+    op_type = request.GET.get('op_type') # value can be 'upload', 'update', 'upload-blks', 'update-blks'
+    lepath = request.GET.get('lepath')
+    lepfile=request.GET.get('lepfile')
+    
+    username = request.user.username
+    
+
+    repo_groups = get_shared_groups_by_repo_and_user(repo_id, username)
+    for repo_group in repo_groups:
+        # Get all group members.
+        members = seaserv.get_group_members(repo_group.id)
+        for member in members:
+            #
+            send_user_notification_mail(request, member.user_name, lepath,lepfile,repo_id)
+            #logger.warning("testa" + url)
+
+
+    return HttpResponse(json.dumps({"0"}), content_type=content_type)    
+    #****************************************************************
+
+
+
+
+
+    
 
 def get_file_upload_url_ul(request, token):
     """Get file upload url in dir upload link.
@@ -1863,3 +1898,45 @@ def events(request):
                                     'events_more': events_more,
                                     'new_start': start}),
                         content_type='application/json; charset=utf-8')
+
+
+
+
+#ajouter
+def get_shared_groups_by_repo_and_user(repo_id, username):
+    """Get all groups which this repo is shared.
+    """
+    repo_shared_groups = seaserv.get_shared_groups_by_repo(repo_id)
+
+    # Filter out groups that user is joined.
+    groups = [x for x in repo_shared_groups if seaserv.is_group_user(x.id, username)]
+    return groups
+
+
+def get_profile(request):
+    """
+        Get profile by username, 
+    """
+    profile = Profile.objects.get_profile_by_user(request.user.username) 
+    if not profile:
+         nickname=""        
+    else:
+        nickname= profile.nickname   
+              
+    return nickname
+
+def send_user_notification_mail(request, email, lepath,lepfile,repo_id):
+    """Send email when share file."""
+    c = {
+        'user': '%s' % EMAIL_FROM,
+        'org': request.user.org,
+        'email': email,
+        'lepath': lepath,
+        'lepfile' : lepfile,
+        'repo_id' : repo_id,
+        'contact_name' : '%s' % get_profile(request),
+        }
+    #send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+    #        'share/user_share_file_email.html', c, None, [email])
+    send_html_email(_(u' %s - Collaborative Space: A file was added') % OFFICE_NAME_OBJET_EMAIL,
+            'shared_upload_file_email.html', c, None, [email])

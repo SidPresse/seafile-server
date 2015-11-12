@@ -1,0 +1,21 @@
+{% extends 'email_base.html' %} {% load i18n %} {% block email_con %} {% autoescape off %}
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% trans "Hi," %}
+</p>
+
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% blocktrans %} <b>{{ lepfile }} </b> file has been deposited into your space sharing and collaboration .{% endblocktrans%}
+</p>
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+	{% trans "To visit , go into your sharing and collaboration space :" %}
+	
+    <a href="{{ url_base }}/repo/{{repo_id}}/?p={{lepath}}" target="_blank">{% trans "Log In" %}</a> 
+   
+
+</p>
+
+
+{% if extra_msg %}
+
+" {{ extra_msg }} "
+{% endif %} {% endautoescape %} {% endblock %} 

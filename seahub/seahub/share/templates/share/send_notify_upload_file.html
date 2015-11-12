@@ -1,0 +1,31 @@
+{% extends 'email_base.html' %}
+
+{% load i18n %}
+
+{% block email_con %}
+
+{% autoescape off %}
+
+<p style="color:#121214;font-size:14px;font-family:Verdana, Georgia, Serif;">{% trans "Hi," %}</p>
+
+<p style="font-size:14px;color:#434144;font-family:Verdana, Georgia, Serif;">
+{% if org %}
+{% blocktrans with org_name=org.org_name %}{{ user }} invited you to join organization "{{ org_name }}" on {{ site_name }}.{% endblocktrans%}
+{% else %}
+{% blocktrans %} Un fichier {{lepfile}} est déposé dans votre espace de partage {% endblocktrans%}
+<p>
+{% blocktrans %} 
+Vbi curarum abiectis ponderibus aliis tamquam nodum et codicem difficillimum Caesarem convellere nisu valido cogitabat, eique deliberanti cum proximis clandestinis conloquiis et nocturnis qua vi, quibusve commentis id fieret, antequam effundendis rebus pertinacius incumberet confidentia, acciri mollioribus scriptis per simulationem tractatus publici nimis urgentis eundem placuerat Gallum, ut auxilio destitutus sine ullo interiret obstaculo.
+{% endblocktrans%}
+</p>
+{% endif %}
+</p>
+
+<a href="{{ url_base }}/repo/{{repo_id}}/?p={{lepath}}" target="_blank">{% trans "Log In" %}</a> 
+
+{% endautoescape %}
+
+{% endblock %}
+
+
+

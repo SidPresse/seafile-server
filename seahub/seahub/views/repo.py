@@ -77,8 +77,7 @@ def get_path_from_request(request):
     return path
 
 def get_next_url_from_request(request):
-    return request.GET.get('next', None)
-
+    return request.GET.get('next', None) 
 def get_nav_path(path, repo_name):
     return gen_path_link(path, repo_name)
 
@@ -155,16 +154,18 @@ def get_dir_shared_upload_link(uploadlink):
         dir_shared_upload_link = ''
     return dir_shared_upload_link
 
-def send_user_notification_mail(request, email, dir_shared_link):
+def send_user_notification_mail(request, email, fileshare):
     """Send email when share file."""
     c = {
         'user': '%s' % EMAIL_FROM,
         'org': request.user.org,
         'email': email,
-        'dir_shared_link': dir_shared_link,
+        'fileshare': fileshare,
         }
+    #send_html_email(_(u'You are invited to join %s') % SITE_NAME,
+    #        'share/user_share_file_email.html', c, None, [email])
     send_html_email(_(u'You are invited to join %s') % SITE_NAME,
-            'share/user_share_file_email.html', c, None, [email])
+            'share/send_notify_upload_file.html', c, None, [email])
 
 def render_repo(request, repo):
     """Steps to show repo page:
@@ -258,18 +259,17 @@ def render_repo(request, repo):
     dir_shared_link = get_dir_share_link(fileshare)
     uploadlink = get_uploadlink(repo.id, username, path)
     dir_shared_upload_link = get_dir_shared_upload_link(uploadlink)
-
-    #for gg in repo_groups:
+    #logger.warning(upload_url + "####")
+    # Send notification to group share.
+    #for repo_group in repo_groups:
         # Get all group members.
-    #    members = seaserv.get_group_members(gg.id)
-    #    for m in members:
-    #        send_user_notification_mail(request, m.user_name, dir_shared_link)
-    #        logger.warning(m.user_name)
+        #members = seaserv.get_group_members(repo_group.id)
+        #for member in members:
+        #    send_user_notification_mail(request, member.user_name, path)
+            #logger.warning("testa" + member.user_name)
 
         
-    
-    #logger.warning(repo_group_str)
-
+        
     if not repo.encrypted and ENABLE_THUMBNAIL:
         size = THUMBNAIL_DEFAULT_SIZE
         for f in file_list:

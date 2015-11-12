@@ -117,6 +117,20 @@
 
 {% endif %}
 
+
+<form id="default-lib-form" action="{% url 'default_repo' %}" method="post" class="file-choose-form hide">{% csrf_token %}
+    <h3>{% trans "Choose default library:" %}</h3>
+    <div class="dir-tree-cont">
+      <div id="repos-dirs"></div>
+    </div>
+    <input type="hidden" name="dst_repo" value="" />
+    <p class="error hide">{% trans "Please click and choose a library."%}</p>
+    <input type="submit" value="{% trans "Submit"%}" class="submit" />
+    <button class="simplemodal-close">{% trans "Cancel"%}</button>
+</form>
+
+
+
 {% endblock %}
 
 {% block extra_script %}
